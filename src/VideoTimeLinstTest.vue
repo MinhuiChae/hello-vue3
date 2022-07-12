@@ -25,6 +25,7 @@
         <input type="range" class="timeline">
       </div>
       <div class="canvasDiv">
+        <div class="frameTimeline" v-bind:style="{left:(0.22041420118343194 * 1440) + 'px'}"></div>
         <canvas class="canvas" :width="state.canvasWidth" height="40" ref = "canvasEl">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
       </div>
     </div>
@@ -71,6 +72,13 @@ export default defineComponent({
       },
     ] 
 
+    /**
+     *  init 기준:
+     *  width pixel에 6000개의 frame 이 있음
+     *  100% => 6000frame => width에 라인이 있어야 함.
+     *  6000 / width => 
+     */
+
     const state = reactive({
       canvasCtx: null as unknown as CanvasRenderingContext2D,
       videoName: '',
@@ -83,7 +91,8 @@ export default defineComponent({
       initWidth: 0,
       canvasWidth: 1200,
       canvasWidthRate: 0,
-      currentCanvasWidth: 0
+      currentCanvasWidth: 0,
+      singleFramePixel: 0
     })
     
     const onChangeVideoInfo = (videoName: string, totalFrame: number, frameRate: number) => {  
@@ -95,8 +104,17 @@ export default defineComponent({
     }
 
     const drawCanvas = (start: number, end: number) => {
+      const video = videoEl.value;
       const canvas = canvasClass.value;
-      if(canvasEl.value) {
+      if(canvasEl.value && video && canvas) {
+
+        video?.addEventListener('timeupdate', function() {
+          setInterval(function() {
+            state.currentFrame = Math.ceil(video?.currentTime * canvas.videoFrameRate);
+          })
+        });
+
+        state.singleFramePixel = (canvasEl.value.width / state.videoTotalFrame) * state.currentFrame;
         canvasEl.value.width = window.innerWidth;
       }
       if (canvas) {
@@ -127,15 +145,11 @@ export default defineComponent({
     }
 
     window.onresize = () => {
-      state.canvasWidth = window.innerWidth;
-      state.canvasWidthRate =  state.canvasWidth / state.currentCanvasWidth ;
-      console.log(state.canvasWidthRate)
-      console.log(state.videoFrameRate * state.canvasWidthRate)
-      drawCanvas(0, Math.ceil(state.videoFrameRate * state.canvasWidthRate))
+      state.currentCanvasWidth = window.innerWidth;
+      drawCanvas(0, state.videoFrameRate)
     }
 
     onMounted(() => {
-      state.currentCanvasWidth = window.innerWidth;
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
       if(canvasEl.value) {
         canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
@@ -179,17 +193,17 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     height: 100vh;
-    border: 1px solid black;
+    border: 1px solid gray;
   }
 
   .top {
-    border: 1px solid red;
+    border: 1px solid gray;
     height: 30px;
     flex: none;
   }
 
   .middle-left {
-    border: 1px solid orange;
+    border: 1px solid gray;
     flex: 0 1 300px;
     display: flex;
     justify-content: center;
@@ -198,7 +212,7 @@ export default defineComponent({
   }
 
   .middle-center {
-    border: 1px solid skyblue;
+    border: 1px solid gray;
     flex: 1 1 auto; 
     display: flex;
     justify-content: space-around;
@@ -261,6 +275,7 @@ export default defineComponent({
     height: 150px;
     display: flex;
     align-items: center;
+    position: relative;
   }
 
   .timeline {
@@ -270,5 +285,12 @@ export default defineComponent({
   .canvas {
     width: 100%;
     height: 50px;
+  }
+
+  .frameTimeline{
+    border-left: 2px solid rgb(27, 17, 17);
+    display: inline;
+    height: 50px;
+    position: absolute;
   }
 </style>
