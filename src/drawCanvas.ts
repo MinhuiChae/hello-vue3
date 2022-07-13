@@ -31,7 +31,6 @@ class drawCanvas {
     const duration = end - start;
     const canvas = this.canvas;
     if (canvas) {
-
       for(let ruleFrame = 1; ruleFrame < duration; ruleFrame*=2) {
         const ruleCnt = duration / ruleFrame;
         const pixel = canvas.width / ruleCnt;
@@ -51,12 +50,12 @@ class drawCanvas {
   
     if (context && canvas) {
       context.clearRect(0, 0, canvas?.width, canvas?.height);
-    this.calculateRuleFrame(start, end)
-    const ruleWidth = canvas.width / duration * this.ruleFrame;
-    this.ruleWidth = ruleWidth;
-    this.minRuleWidth = canvas.width / duration;
-    const ruleCnt = canvas.width / ruleWidth;
-    context.lineWidth = 0.5;
+      this.calculateRuleFrame(start, end)
+      const ruleWidth = canvas.width / duration * this.ruleFrame;
+      this.ruleWidth = ruleWidth;
+      this.minRuleWidth = canvas.width / duration;
+      const ruleCnt = canvas.width / ruleWidth;
+      context.fillStyle = "white"
 
       for(let cnt = 0; cnt <= ruleCnt; cnt++) {
         const rulePositionX = ruleWidth * cnt; 
@@ -69,16 +68,15 @@ class drawCanvas {
           context.fillText(String(drawRuleFrame), drawTextPositionX, 40);
         }
 
-        context.strokeStyle = "#000000";
+        context.strokeStyle = "white";
         context.beginPath();
-        context.moveTo(rulePositionX-0.5, 0);
-        context.lineTo(rulePositionX-0.5, linePositionY);
+        context.moveTo(rulePositionX + 0.5, 0);
+        context.lineTo(rulePositionX + 0.5, linePositionY);
         context.stroke();
         context.closePath();
       }
     }
   }
- 
 }
 
 export default drawCanvas;
