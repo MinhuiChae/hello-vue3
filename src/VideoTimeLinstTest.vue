@@ -35,13 +35,11 @@
 import { defineComponent, onMounted, reactive, ref } from 'vue';
 import {IVideoInfo} from './interface/index';
 import DrawCanvas from './drawCanvas'
-
 const canvasEl = ref<HTMLCanvasElement>();
 const timelineEl = ref<HTMLInputElement>();
 const videoEl = ref<HTMLVideoElement>();
 const lineEl = ref<HTMLDivElement>();
 const canvasClass = ref<DrawCanvas>();
-
 export default defineComponent({
   name: 'test-view',
   setup() {  
@@ -77,15 +75,7 @@ export default defineComponent({
        seenFrameRate: 23.96855634057534
       },
     ] 
-
-    /**
-     *  init 기준:
-     *  width pixel에 6000개의 frame 이 있음
-     *  100% => 6000frame => width에 라인이 있어야 함.
-     *  6000 / width => 
-     *  width === 1279pixel
-     */
-
+    
     const state = reactive({
       canvasCtx: null as unknown as CanvasRenderingContext2D,
       videoName: '',
@@ -100,7 +90,8 @@ export default defineComponent({
       singleFramePixel: 0,
       currentFrameRate: 1,
       seenFrameRate: 0,
-      currentTotalFrame: 6000
+      currentTotalFrame: 6000,
+      intervalNum: 0
     })
     
     const onChangeVideoInfo = (videoName: string, totalFrame: number, frameRate: number, seenFrameRate: number) => {  
@@ -125,10 +116,8 @@ export default defineComponent({
 
     const drawCanvas = (start: number, end: number) => {
       const canvas = canvasClass.value;
-      if(canvasEl.value) {
+      if (canvas && canvasEl.value) {
         canvasEl.value.width = window.innerWidth;
-      }
-      if (canvas) {
         canvas.setRuleUnit(15);
         canvas.draw(start, end);
       }
@@ -147,18 +136,12 @@ export default defineComponent({
 
     const decideCurrentVideoInfo = () => {
       const video = videoEl.value;
-      const canvas = canvasClass.value;
-      video?.addEventListener('timeupdate', function() {
-        if(canvasEl.value)
-        console.log(canvasEl.value.width)
-        if(canvas)
-        setInterval(function() {
-          if(canvasEl.value) {
-            state.currentFrame = Math.round(video?.currentTime * state.seenFrameRate);
-            state.singleFramePixel = (canvasEl.value.width / state.videoTotalFrame) * (state.currentFrame / state.currentFrameRate);
-          }
-        })
-      });
+      state.intervalNum = setInterval(function() {
+        if(canvasEl.value && video) {
+          state.currentFrame = Math.floor(video?.currentTime * state.seenFrameRate);
+          state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame;
+        }
+      })
     }
 
     const changeButtonName = () => {
@@ -166,42 +149,26 @@ export default defineComponent({
     }
 
     window.onresize = () => {
-      if(canvasEl.value) {
-        drawCanvas(0, state.currentTotalFrame)
-      }
+      if(canvasEl.value) drawCanvas(0, state.currentTotalFrame)
     }
-
-    /**
-     *  0~100
-     *  0% => 126
-     *  ... => 5400
-     *  100% => 6000
-     */
 
     const handleInput = (e: any) => {
       state.currentFrameRate = Number(`${e.target.value}`) / 100;
-
       if(canvasEl.value) {
         const seenFrame = state.videoTotalFrame - (canvasEl.value.width / 10);
         state.currentTotalFrame = seenFrame * state.currentFrameRate + (canvasEl.value.width / 10);
       }
-
       drawCanvas(0, state.currentTotalFrame);
     }
 
     const onChangeTotalFrame = () => { 
       const range = timelineEl.value;
-      if(range) {
-        range.oninput = handleInput; 
-      }
+      if(range) range.oninput = handleInput; 
     }
 
     onMounted(() => {
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
-      if(canvasEl.value) {
-        canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
-      }
-
+      if(canvasEl.value) canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
       drawCanvas(0, state.videoTotalFrame);
     })
 
@@ -221,11 +188,9 @@ export default defineComponent({
 </script>
 
 <style>
-
   *{
     box-sizing: border-box;
   }
-
   html, body {
     margin:0px;
     padding:0px;
@@ -233,26 +198,22 @@ export default defineComponent({
     background-color: #3E3E3E;
     color: white;
   }
-
   #app {
     width:100%;
     height:100vh;
     overflow: hidden;
   }
-
   .boxes {
     display: flex;
     flex-direction: column;
     height: 100vh;
     border: 1px solid gray;
   }
-
   .top {
     border: 1px solid gray;
     height: 30px;
     flex: none;
   }
-
   .middle-left {
     border: 1px solid gray;
     flex: 0 1 300px;
@@ -260,8 +221,8 @@ export default defineComponent({
     justify-content: center;
     flex-direction: column;
     align-items: center;
+    overflow: hidden;
   }
-
   .middle-center {
     border: 1px solid gray;
     flex: 1 1 auto; 
@@ -270,7 +231,6 @@ export default defineComponent({
     align-items: center;
     flex-direction: column;
   }
-
   .bottom {
     border: 1px solid gray;
     margin-top: auto;
@@ -278,20 +238,17 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
   }
-
   .middle {
     display: flex;
     flex-direction: row;
     height: 100vh;
   }
-
   ul {
     display: flex;
     flex-direction: column;
     margin: 0;
     padding: 0
   }
-
   li{
     height:40px;
     display: flex;
@@ -301,21 +258,18 @@ export default defineComponent({
     background: #000000;
     border-radius: 0.8em;
   }
-
   .video {
     width: 100vh;
     margin-top: 10px;
     border-radius: 0.8em;
     border: 1px solid white;
   }
-
   .videoInfo {
     width: 100vh;
     display: flex;
     justify-content: space-between;
     flex-direction: row;
   }
-
   .videoList {
     cursor: pointer;
     border: 1px solid white;
@@ -325,34 +279,28 @@ export default defineComponent({
   .videoInfo span {
     width: 150px;
   }
-
   .timelineDiv {
     height: 50px;
   }
-
   .canvasDiv {
     height: 150px;
     display: flex;
     align-items: center;
     position: relative;
   }
-
   .timeline {
     width: 300px;
   }
-
   .frameTimeline{
     border-left: 2px solid lightgray;
     display: inline;
     height: 80px;
     position: absolute;
   }
-
   .plyBtn {
     cursor: pointer;
     font-size: 20px;
   }
-
   input{
     accent-color: lightgray;
 }

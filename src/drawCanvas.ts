@@ -57,16 +57,17 @@ class drawCanvas {
       const ruleCnt = canvas.width / ruleWidth;
       context.fillStyle = "white"
       context.font = "15px Arial"
+      context.lineWidth = 0.5;
 
       for(let cnt = 0; cnt <= ruleCnt; cnt++) {
-        const rulePositionX = ruleWidth * cnt; 
+        const rulePositionX = Math.ceil(ruleWidth * cnt) + 0.5; 
         const drawTextPositionX =  rulePositionX - 5;
         let linePositionY = this.shortPositionY;
         const drawRuleFrame = start + (this.ruleFrame * cnt);
   
         if (this.isSatisfiedRepresntText(cnt)) {
           linePositionY = this.longPositionY;
-          context.fillText(String(drawRuleFrame), drawTextPositionX, 40);
+          context.fillText(String(drawRuleFrame), drawTextPositionX, 50);
         }
 
         context.strokeStyle = "white";
