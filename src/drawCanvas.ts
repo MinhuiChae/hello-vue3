@@ -56,6 +56,7 @@ class drawCanvas {
       this.minRuleWidth = canvas.width / duration;
       const ruleCnt = canvas.width / ruleWidth;
       context.fillStyle = "white"
+      context.font = "15px Arial"
 
       for(let cnt = 0; cnt <= ruleCnt; cnt++) {
         const rulePositionX = ruleWidth * cnt; 
@@ -70,8 +71,8 @@ class drawCanvas {
 
         context.strokeStyle = "white";
         context.beginPath();
-        context.moveTo(rulePositionX + 0.5, 0);
-        context.lineTo(rulePositionX + 0.5, linePositionY);
+        context.moveTo(rulePositionX, 0);
+        context.lineTo(rulePositionX, linePositionY);
         context.stroke();
         context.closePath();
       }

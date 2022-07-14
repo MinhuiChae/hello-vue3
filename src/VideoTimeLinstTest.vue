@@ -5,13 +5,13 @@
     <div class="middle">
       <div class="middle-left">
         <ul>
-          <li v-for="video in videoList" :key="video.name" @click="onChangeVideoInfo(video.name, video.totalFrame, video.frameRate)" class="videoList">
-            {{ video.name }}
+          <li v-for="video in videoList" :key="video.name" @click="onChangeVideoInfo(video.name, video.totalFrame, video.frameRate, video.seenFrameRate)" class="videoList">
+            <div class="listDiv">{{ video.name }}</div>
           </li>
         </ul>
       </div>
       <div class="middle-center">
-        <video class="video" :src="state.videoName + '.mp4'" ref="videoEl" v-if="state.videoStatus"></video>
+        <video class="video" :src="state.videoName + '.mp4'" ref="videoEl" v-if="state.videoStatus" controls></video>
         <div class="videoInfo" v-if="state.videoStatus">
           <span>Current frame: {{ state.currentFrame }}</span>
           <div @click="onChangeVideoPlayStatus()" class="plyBtn">{{ state.buttonName }}</div>
@@ -21,11 +21,11 @@
     </div>
     <div class="bottom">
       <div class="timelineDiv">
-        <input type="range" class="timeline" ref="timelineEl" min="1" max="100" value="100" @mousedown="onChangeTotalFrame()">
+        <input type="range" class="timeline" ref="timelineEl" min="0" max="100" value="100" @mousedown="onChangeTotalFrame()">
       </div>
       <div class="canvasDiv">
-        <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}" @mousedown="onChangelinePosition()"></div>
-        <canvas class="canvas" :width="state.canvasWidth" height="40" ref = "canvasEl">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
+        <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
+        <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
       </div>
     </div>
   </div>
@@ -49,27 +49,32 @@ export default defineComponent({
       {
        name: 'gdragon',
        totalFrame: 5408,
-       frameRate: 23.976
+       frameRate: 23.976,
+       seenFrameRate: 23.976 
       },
       {
        name: 'BTS' ,
        totalFrame: 5478,
-       frameRate: 30
+       frameRate: 30,
+       seenFrameRate: 29.97291603972314 
       },
       {
        name: 'aespa' ,
        totalFrame: 6439,
-       frameRate: 23.976
+       frameRate: 23.976,
+       seenFrameRate: 23.97164651966241
       },
       {
        name: 'ITZY' ,
        totalFrame: 6559,
-       frameRate: 29.970
+       frameRate: 29.970,
+       seenFrameRate: 29.95141286280527
       },
       {
        name: 'Garam' ,
        totalFrame: 4970,
-       frameRate: 23.976
+       frameRate: 23.976,
+       seenFrameRate: 23.96855634057534
       },
     ] 
 
@@ -92,18 +97,21 @@ export default defineComponent({
       initWidth: 0,
       canvasWidth: 1200,
       canvasWidthRate: 0,
-      currentCanvasWidth: 0,
       singleFramePixel: 0,
       currentFrameRate: 1,
+      seenFrameRate: 0,
+      currentTotalFrame: 6000
     })
     
-    const onChangeVideoInfo = (videoName: string, totalFrame: number, frameRate: number) => {  
+    const onChangeVideoInfo = (videoName: string, totalFrame: number, frameRate: number, seenFrameRate: number) => {  
       initVideoTimelineInfo();
       state.isPlayVideo = false;
       state.buttonName = 'play';
       state.videoStatus = true;
       state.videoName = videoName;
+      state.seenFrameRate = seenFrameRate;
       state.videoTotalFrame = totalFrame;
+      state.currentTotalFrame = totalFrame;
       canvasClass.value?.setVideoFrameRate(frameRate);
       drawCanvas(0, totalFrame)
     }
@@ -126,13 +134,6 @@ export default defineComponent({
       }
     }
 
-    /**0~100%;
-     * 100% => 6439frame
-     * 90% => 5795frame
-     * 1frame => totalFrame / canvasWidth;
-     * 2frame => totalFrame / canvasWidth * 2
-     */
-
     const onChangeVideoPlayStatus = () => {
       changeButtonName();
       if(state.isPlayVideo) {
@@ -146,13 +147,15 @@ export default defineComponent({
 
     const decideCurrentVideoInfo = () => {
       const video = videoEl.value;
-      const canvas = canvasClass.value
+      const canvas = canvasClass.value;
       video?.addEventListener('timeupdate', function() {
+        if(canvasEl.value)
+        console.log(canvasEl.value.width)
         if(canvas)
         setInterval(function() {
           if(canvasEl.value) {
-            state.currentFrame = Math.round(video?.currentTime * canvas.videoFrameRate);
-            state.singleFramePixel = (canvasEl.value.width/ state.videoTotalFrame) * (state.currentFrame / state.currentFrameRate);
+            state.currentFrame = Math.round(video?.currentTime * state.seenFrameRate);
+            state.singleFramePixel = (canvasEl.value.width / state.videoTotalFrame) * (state.currentFrame / state.currentFrameRate);
           }
         })
       });
@@ -164,14 +167,26 @@ export default defineComponent({
 
     window.onresize = () => {
       if(canvasEl.value) {
-        state.currentCanvasWidth = canvasEl.value.width;
-        drawCanvas(0, state.videoTotalFrame * state.currentFrameRate)
+        drawCanvas(0, state.currentTotalFrame)
       }
     }
 
+    /**
+     *  0~100
+     *  0% => 126
+     *  ... => 5400
+     *  100% => 6000
+     */
+
     const handleInput = (e: any) => {
       state.currentFrameRate = Number(`${e.target.value}`) / 100;
-      drawCanvas(0, state.videoTotalFrame * state.currentFrameRate);
+
+      if(canvasEl.value) {
+        const seenFrame = state.videoTotalFrame - (canvasEl.value.width / 10);
+        state.currentTotalFrame = seenFrame * state.currentFrameRate + (canvasEl.value.width / 10);
+      }
+
+      drawCanvas(0, state.currentTotalFrame);
     }
 
     const onChangeTotalFrame = () => { 
@@ -179,13 +194,6 @@ export default defineComponent({
       if(range) {
         range.oninput = handleInput; 
       }
-    }
-
-    const onChangelinePosition = () => {
-      const line = lineEl.value;
-      line?.addEventListener("mousedown", function(e: any) {
-        line.style.width = e.clientX + "px";
-      })
     }
 
     onMounted(() => {
@@ -201,7 +209,6 @@ export default defineComponent({
       onChangeVideoInfo,
       onChangeVideoPlayStatus,
       onChangeTotalFrame,
-      onChangelinePosition,
       videoList,
       state,
       videoEl,
@@ -334,13 +341,8 @@ export default defineComponent({
     width: 300px;
   }
 
-  .canvas {
-    width: 100%;
-    height: 50px;
-  }
-
   .frameTimeline{
-    border-left: 3px solid rgb(183, 203, 255);
+    border-left: 2px solid lightgray;
     display: inline;
     height: 80px;
     position: absolute;
@@ -350,4 +352,8 @@ export default defineComponent({
     cursor: pointer;
     font-size: 20px;
   }
+
+  input{
+    accent-color: lightgray;
+}
 </style>
