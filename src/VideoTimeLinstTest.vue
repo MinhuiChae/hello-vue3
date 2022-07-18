@@ -27,7 +27,7 @@
         <input type="range" class="timeline" ref="timelineEl" min="0" max="100" value="100" @mousedown="onChangeTotalFrame()">
       </div>
       <div class="canvasDiv">
-        <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}" draggable="true"></div>
+        <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
         <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
       </div>
     </div>
@@ -45,13 +45,9 @@ const timelineEl = ref<HTMLInputElement>();
 const videoEl = ref<HTMLVideoElement>();
 const lineEl = ref<HTMLDivElement>();
 const canvasClass = ref<DrawCanvas>();
-const dragEl = ref<HTMLElement>();
-const dropEl = ref<HTMLElement>();
 export default defineComponent({
   name: 'test-view',
   setup() {  
-
-    
     const videoList: IVideoInfo[] = [
       {
        name: 'gdragon',
@@ -100,10 +96,12 @@ export default defineComponent({
       currentFrameRate: 1,
       seenFrameRate: 0,
       currentTotalFrame: 6000,
-      intervalNum: 0
+      intervalNum: 0,
+      currentTime: 0,
+      isClickedTimeline: false
     })
     
-    const onChangeVideoInfo = (video: IVideoInfo) => {  
+    const onChangeVideoInfo = (video: IVideoInfo) => { 
       initVideoTimelineInfo();
       state.isPlayVideo = false;
       state.buttonName = 'play';
@@ -117,19 +115,27 @@ export default defineComponent({
     }
 
     const clickTimelineAndMove = () => {
-       canvasEl.value?.addEventListener("click", function(event) {
+      
+      canvasEl.value?.addEventListener("mousedown", function(event) {
         const rect = canvasEl.value?.getBoundingClientRect();
-        if(rect && canvasEl.value) {
-          const x = event.clientX - rect.left;
-
-          state.currentFrame = Math.ceil(canvasEl.value.width / state.currentTotalFrame);
-          console.log(x)
-          console.log("frame",state.currentFrame)
-
-          state.singleFramePixel = x
+        if(rect && canvasEl.value && canvasClass.value) {
+          const linePosition = event.clientX - rect.left;
+          state.singleFramePixel = linePosition;
+          const pixel = canvasEl.value.width / state.currentTotalFrame;
+          state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
+          if(videoEl.value) 
+          videoEl.value.currentTime = state.currentTime;
         }
-        
+        canvasEl.value?.addEventListener('mousemove', changeTimelinePosition)
       })
+
+      canvasEl.value?.addEventListener("mouseup", () => {
+        canvasEl.value?.removeEventListener('mousemove', changeTimelinePosition)
+      })
+    }
+
+    const changeTimelinePosition = () => {
+      console.log('moved')
     }
     
     const initVideoTimelineInfo = () => {
@@ -140,6 +146,8 @@ export default defineComponent({
     }
 
     const drawCanvas = (start: number, end: number) => {
+      state.currentTime = 0;
+      state.singleFramePixel = 0;
       const canvas = canvasClass.value;
       if (canvas && canvasEl.value) {
         canvasEl.value.width = window.innerWidth;
@@ -161,12 +169,12 @@ export default defineComponent({
 
     const decideCurrentVideoInfo = () => {
       const video = videoEl.value;
-      state.intervalNum = setInterval(function() {
-        if(canvasEl.value && video) {
-          state.currentFrame = Math.floor(video?.currentTime * state.seenFrameRate);
-          state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame;
-        }
-      })
+      if(video) {
+        state.intervalNum = setInterval(function() {
+          state.currentFrame = Math.floor(video.currentTime * state.seenFrameRate);
+          if(canvasEl.value) state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame;
+        })
+      }
     }
 
     const changeButtonName = () => {
@@ -183,6 +191,7 @@ export default defineComponent({
         const seenFrame = state.videoTotalFrame - (canvasEl.value.width / 10);
         state.currentTotalFrame = seenFrame * state.currentFrameRate + (canvasEl.value.width / 10);
       }
+
       drawCanvas(0, state.currentTotalFrame);
     }
 
@@ -198,9 +207,6 @@ export default defineComponent({
       clickTimelineAndMove();
     })
 
-
-  
-
     return {
       onChangeVideoInfo,
       onChangeVideoPlayStatus,
@@ -211,8 +217,6 @@ export default defineComponent({
       canvasEl,
       timelineEl,
       lineEl,
-      dragEl,
-      dropEl
     }
   }
 });
@@ -324,7 +328,7 @@ export default defineComponent({
     width: 300px;
   }
   .frameTimeline{
-    border: 1px solid lightgray;
+    border-left: 3px solid lightgray;
     display: inline;
     height: 80px;
     position: absolute;
@@ -338,8 +342,5 @@ export default defineComponent({
   }
   .videoWrapDiv {
     width: 700px;
-  }
-  #drag, #drop {
-    border: 1px solid white;
   }
 </style>
