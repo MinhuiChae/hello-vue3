@@ -13,7 +13,7 @@
       <div class="middle-center">
         <div>{{ state.videoName }}</div>
         <div class="videoWrapDiv">
-          <video class="video" :src="state.videoName + '.mp4'" ref="videoEl" v-if="state.videoStatus" controls></video>
+          <video class="video" :src="state.videoName + '.mp4'" ref="videoEl" v-if="state.videoStatus"></video>
           <div class="videoInfo" v-if="state.videoStatus">
             <span>Current frame: {{ state.currentFrame }}</span>
             <div @click="onChangeVideoPlayStatus()" class="plyBtn">{{ state.buttonName }}</div>
@@ -28,7 +28,7 @@
       </div>
       <div class="canvasDiv">
         <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
-        <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
+        <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl" @mousedown="onMouseDown">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
       </div>
     </div>
   </div>
@@ -113,29 +113,33 @@ export default defineComponent({
       canvasClass.value?.setVideoFrameRate(video.frameRate);
       drawCanvas(0, video.totalFrame);
     }
+    
 
-    const clickTimelineAndMove = () => {
-      
-      canvasEl.value?.addEventListener("mousedown", function(event) {
-        const rect = canvasEl.value?.getBoundingClientRect();
-        if(rect && canvasEl.value && canvasClass.value) {
-          const linePosition = event.clientX - rect.left;
-          state.singleFramePixel = linePosition;
-          const pixel = canvasEl.value.width / state.currentTotalFrame;
-          state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
-          if(videoEl.value) 
-          videoEl.value.currentTime = state.currentTime;
-        }
-        canvasEl.value?.addEventListener('mousemove', changeTimelinePosition)
-      })
-
-      canvasEl.value?.addEventListener("mouseup", () => {
-        canvasEl.value?.removeEventListener('mousemove', changeTimelinePosition)
-      })
+    const onMouseDown = (e: MouseEvent) => {
+      // Bar를 옮긴다.
+      // window MouseMove 이벤트를 만든다.
+      // window mouseup 이벤트를 만든다.
+      changeTimelinePosition(e);
+      window.addEventListener('mousemove', changeTimelinePosition);    
+      window.addEventListener('mouseup', upEvent);    
     }
 
-    const changeTimelinePosition = () => {
-      console.log('moved')
+    const upEvent = () => {
+      console.log('up event')
+      window.removeEventListener('mousemove', changeTimelinePosition);
+      window.removeEventListener('mouseup', upEvent);
+    }
+
+    const changeTimelinePosition = (event: MouseEvent) => {
+      const rect = canvasEl.value?.getBoundingClientRect();
+      if(rect && canvasEl.value && canvasClass.value) {
+        const linePosition = event.clientX - rect.left;
+        state.singleFramePixel = linePosition;
+        const pixel = canvasEl.value.width / state.currentTotalFrame;
+        state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
+        if(videoEl.value) 
+        videoEl.value.currentTime = state.currentTime;
+      }
     }
     
     const initVideoTimelineInfo = () => {
@@ -200,17 +204,20 @@ export default defineComponent({
       if(range) range.oninput = handleInput; 
     }
 
+    
+
     onMounted(() => {
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
       if(canvasEl.value) canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
       drawCanvas(0, state.videoTotalFrame);
-      clickTimelineAndMove();
     })
 
     return {
       onChangeVideoInfo,
       onChangeVideoPlayStatus,
       onChangeTotalFrame,
+      onMouseDown,
+      changeTimelinePosition,
       videoList,
       state,
       videoEl,
