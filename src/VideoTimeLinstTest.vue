@@ -103,6 +103,8 @@ export default defineComponent({
     
     const onChangeVideoInfo = (video: IVideoInfo) => { 
       initVideoTimelineInfo();
+      state.singleFramePixel = 0;
+      state.currentTime = 0;
       state.isPlayVideo = false;
       state.buttonName = 'play';
       state.videoStatus = true;
@@ -116,16 +118,12 @@ export default defineComponent({
     
 
     const onMouseDown = (e: MouseEvent) => {
-      // Bar를 옮긴다.
-      // window MouseMove 이벤트를 만든다.
-      // window mouseup 이벤트를 만든다.
       changeTimelinePosition(e);
       window.addEventListener('mousemove', changeTimelinePosition);    
       window.addEventListener('mouseup', upEvent);    
     }
 
     const upEvent = () => {
-      console.log('up event')
       window.removeEventListener('mousemove', changeTimelinePosition);
       window.removeEventListener('mouseup', upEvent);
     }
@@ -136,6 +134,7 @@ export default defineComponent({
         const linePosition = event.clientX - rect.left;
         state.singleFramePixel = linePosition;
         const pixel = canvasEl.value.width / state.currentTotalFrame;
+        state.currentFrame = Math.floor(linePosition / pixel)
         state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
         if(videoEl.value) 
         videoEl.value.currentTime = state.currentTime;
@@ -150,8 +149,6 @@ export default defineComponent({
     }
 
     const drawCanvas = (start: number, end: number) => {
-      state.currentTime = 0;
-      state.singleFramePixel = 0;
       const canvas = canvasClass.value;
       if (canvas && canvasEl.value) {
         canvasEl.value.width = window.innerWidth;
@@ -203,8 +200,6 @@ export default defineComponent({
       const range = timelineEl.value;
       if(range) range.oninput = handleInput; 
     }
-
-    
 
     onMounted(() => {
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
@@ -335,7 +330,7 @@ export default defineComponent({
     width: 300px;
   }
   .frameTimeline{
-    border-left: 3px solid lightgray;
+    border-left: 2px solid lightgray;
     display: inline;
     height: 80px;
     position: absolute;
