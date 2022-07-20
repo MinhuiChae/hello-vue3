@@ -28,6 +28,7 @@
       </div>
       <div class="canvasDiv">
         <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
+        <div style="width: 100px"></div>
         <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl" @mousedown="onMouseDown">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
       </div>
     </div>
@@ -104,6 +105,7 @@ export default defineComponent({
     const onChangeVideoInfo = (video: IVideoInfo) => { 
       initVideoTimelineInfo();
       state.singleFramePixel = 0;
+      state.currentFrame = 0;
       state.currentTime = 0;
       state.isPlayVideo = false;
       state.buttonName = 'play';
@@ -115,7 +117,6 @@ export default defineComponent({
       canvasClass.value?.setVideoFrameRate(video.frameRate);
       drawCanvas(0, video.totalFrame);
     }
-    
 
     const onMouseDown = (e: MouseEvent) => {
       changeTimelinePosition(e);
@@ -151,6 +152,7 @@ export default defineComponent({
     const drawCanvas = (start: number, end: number) => {
       const canvas = canvasClass.value;
       if (canvas && canvasEl.value) {
+        state.singleFramePixel = state.currentFrame * (canvasEl.value.width / state.currentTotalFrame)
         canvasEl.value.width = window.innerWidth;
         canvas.setRuleUnit(15);
         canvas.draw(start, end);
@@ -161,6 +163,7 @@ export default defineComponent({
       changeButtonName();
       if(state.isPlayVideo) {
         videoEl.value?.pause();
+        clearInterval(state.intervalNum)
       } else {
         videoEl.value?.play();
         decideCurrentVideoInfo();
@@ -172,6 +175,7 @@ export default defineComponent({
       const video = videoEl.value;
       if(video) {
         state.intervalNum = setInterval(function() {
+          console.log(2);
           state.currentFrame = Math.floor(video.currentTime * state.seenFrameRate);
           if(canvasEl.value) state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame;
         })
