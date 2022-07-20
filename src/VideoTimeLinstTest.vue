@@ -28,8 +28,10 @@
       </div>
       <div class="canvasDiv">
         <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
-        <div style="width: 100px"></div>
-        <canvas class="canvas" :width="state.canvasWidth" height="60" ref = "canvasEl" @mousedown="onMouseDown">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
+        <div class="testDiv"></div>
+        <div ref="canvasDivEl" class="canvasDivEl">
+          <canvas class="canvas" height="60" ref = "canvasEl" @mousedown="onMouseDown">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -45,6 +47,7 @@ const canvasEl = ref<HTMLCanvasElement>();
 const timelineEl = ref<HTMLInputElement>();
 const videoEl = ref<HTMLVideoElement>();
 const lineEl = ref<HTMLDivElement>();
+const canvasDivEl = ref<HTMLDivElement>();
 const canvasClass = ref<DrawCanvas>();
 export default defineComponent({
   name: 'test-view',
@@ -91,7 +94,6 @@ export default defineComponent({
       buttonName: 'play',
       currentFrame: 0,
       initWidth: 0,
-      canvasWidth: 1200,
       canvasWidthRate: 0,
       singleFramePixel: 0,
       currentFrameRate: 1,
@@ -150,10 +152,12 @@ export default defineComponent({
     }
 
     const drawCanvas = (start: number, end: number) => {
+      console.log(canvasDivEl.value?.offsetWidth)
       const canvas = canvasClass.value;
-      if (canvas && canvasEl.value) {
+      if (canvas && canvasEl.value && canvasDivEl.value) {
         state.singleFramePixel = state.currentFrame * (canvasEl.value.width / state.currentTotalFrame)
-        canvasEl.value.width = window.innerWidth;
+        
+       canvasEl.value.width = canvasDivEl.value.offsetWidth;
         canvas.setRuleUnit(15);
         canvas.draw(start, end);
       }
@@ -207,7 +211,9 @@ export default defineComponent({
 
     onMounted(() => {
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
-      if(canvasEl.value) canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
+      if(canvasEl.value && canvasDivEl.value) {
+        canvasClass.value = new DrawCanvas( canvasEl.value, state.canvasCtx);
+      } 
       drawCanvas(0, state.videoTotalFrame);
     })
 
@@ -223,6 +229,7 @@ export default defineComponent({
       canvasEl,
       timelineEl,
       lineEl,
+      canvasDivEl
     }
   }
 });
@@ -327,6 +334,7 @@ export default defineComponent({
   .canvasDiv {
     height: 150px;
     display: flex;
+    flex-direction: row;
     align-items: center;
     position: relative;
   }
@@ -348,5 +356,12 @@ export default defineComponent({
   }
   .videoWrapDiv {
     width: 700px;
+  }
+  .testDiv {
+    height: 100px;
+    min-width: 300px;
+  }
+  .canvasDivEl {
+    flex: auto; 
   }
 </style>
