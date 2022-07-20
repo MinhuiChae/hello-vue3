@@ -28,7 +28,7 @@
       </div>
       <div class="canvasDiv">
         <div class="frameTimeline" ref="lineEl" v-bind:style="{left:(state.singleFramePixel) + 'px'}"></div>
-        <div class="testDiv"></div>
+        <div class="testDiv" ref="testDivEl"></div>
         <div ref="canvasDivEl" class="canvasDivEl">
           <canvas class="canvas" height="60" ref = "canvasEl" @mousedown="onMouseDown">이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
         </div>
@@ -48,6 +48,7 @@ const timelineEl = ref<HTMLInputElement>();
 const videoEl = ref<HTMLVideoElement>();
 const lineEl = ref<HTMLDivElement>();
 const canvasDivEl = ref<HTMLDivElement>();
+const testDivEl = ref<HTMLDivElement>();
 const canvasClass = ref<DrawCanvas>();
 export default defineComponent({
   name: 'test-view',
@@ -133,9 +134,11 @@ export default defineComponent({
 
     const changeTimelinePosition = (event: MouseEvent) => {
       const rect = canvasEl.value?.getBoundingClientRect();
-      if(rect && canvasEl.value && canvasClass.value) {
-        const linePosition = event.clientX - rect.left;
-        state.singleFramePixel = linePosition;
+      if(rect && canvasEl.value && canvasClass.value && testDivEl.value && canvasDivEl.value) {
+        let linePosition = event.clientX - rect.left;
+        if(linePosition < 0) linePosition = 0;
+        else if(linePosition > canvasDivEl.value.offsetWidth) linePosition = canvasDivEl.value.offsetWidth;
+        state.singleFramePixel = linePosition + testDivEl.value.offsetWidth;
         const pixel = canvasEl.value.width / state.currentTotalFrame;
         state.currentFrame = Math.floor(linePosition / pixel)
         state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
@@ -152,11 +155,9 @@ export default defineComponent({
     }
 
     const drawCanvas = (start: number, end: number) => {
-      console.log(canvasDivEl.value?.offsetWidth)
       const canvas = canvasClass.value;
-      if (canvas && canvasEl.value && canvasDivEl.value) {
-        state.singleFramePixel = state.currentFrame * (canvasEl.value.width / state.currentTotalFrame)
-        
+      if (canvas && canvasEl.value && canvasDivEl.value && testDivEl.value) {
+        state.singleFramePixel = state.currentFrame * (canvasEl.value.width / state.currentTotalFrame) + testDivEl.value.offsetWidth;
        canvasEl.value.width = canvasDivEl.value.offsetWidth;
         canvas.setRuleUnit(15);
         canvas.draw(start, end);
@@ -179,9 +180,8 @@ export default defineComponent({
       const video = videoEl.value;
       if(video) {
         state.intervalNum = setInterval(function() {
-          console.log(2);
           state.currentFrame = Math.floor(video.currentTime * state.seenFrameRate);
-          if(canvasEl.value) state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame;
+          if(canvasEl.value && testDivEl.value) state.singleFramePixel = canvasEl.value.width / state.currentTotalFrame * state.currentFrame + testDivEl.value.offsetWidth;
         })
       }
     }
@@ -229,7 +229,8 @@ export default defineComponent({
       canvasEl,
       timelineEl,
       lineEl,
-      canvasDivEl
+      canvasDivEl,
+      testDivEl
     }
   }
 });
@@ -364,4 +365,7 @@ export default defineComponent({
   .canvasDivEl {
     flex: auto; 
   }
-</style>
+  .canvas {
+    position: absolute;
+  }
+  </style>
