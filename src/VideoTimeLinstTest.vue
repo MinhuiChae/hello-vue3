@@ -140,9 +140,9 @@ export default defineComponent({
         else if(linePosition > canvasDivEl.value.offsetWidth) linePosition = canvasDivEl.value.offsetWidth;
         state.singleFramePixel = linePosition + testDivEl.value.offsetWidth;
         const pixel = canvasEl.value.width / state.currentTotalFrame;
-        state.currentFrame = Math.floor(linePosition / pixel)
+        state.currentFrame = Math.floor(linePosition / pixel);
         state.currentTime = (linePosition / pixel) / canvasClass.value.videoFrameRate;
-        if(videoEl.value) 
+        if(videoEl.value)
         videoEl.value.currentTime = state.currentTime;
       }
     }
