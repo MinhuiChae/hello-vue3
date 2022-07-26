@@ -1,3 +1,5 @@
+import { VNodeRef } from "vue";
+
 interface IVideoInfo {
   name: string,
   totalFrame: number,
@@ -5,4 +7,11 @@ interface IVideoInfo {
   seenFrameRate: number
 }
 
-export {IVideoInfo};
+interface IDivInfo {
+  divName: string,
+  className: string ,
+  htmlDivName: HTMLDivElement ,
+  refName: VNodeRef | undefined
+}
+
+export {IVideoInfo, IDivInfo};

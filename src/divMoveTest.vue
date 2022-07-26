@@ -1,16 +1,14 @@
 <template>
-  <div>
-    <div class="firstDiv" @mousedown.stop="onMoveDiv($event, firstDivEl)" ref="firstDivEl">
-      Red
-    </div>
-    <div class="secondDiv" @mousedown.stop="onMoveDiv($event, secondDivEl)" ref="secondDivEl">
-      Blue
+  <div v-for="div in divList" :key="div.divName">
+    <div :class="div.className" @mousedown.stop="onMoveDiv($event, div.htmlDivName)" :ref="div.refName">
+      {{ div.divName }}
     </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, ref } from "vue";
+import {IDivInfo} from './interface/index';
 const firstDivEl = ref<HTMLDivElement>();
 const secondDivEl = ref<HTMLDivElement>();
 export default defineComponent({
@@ -22,12 +20,43 @@ export default defineComponent({
       divTop: 0
     })
 
-    const onMoveDiv = (e:MouseEvent ,div: HTMLDivElement | undefined) => {
-      if(div) state.div = div; 
-      const divRect = div?.getBoundingClientRect();
-      if (divRect) {
-        state.divLeft = e.clientX - divRect?.left;
-        state.divTop = e.clientY - divRect?.top;
+    const divList: IDivInfo[] = [
+      {
+        divName: 'Red',
+        className: 'firstDiv',
+        htmlDivName: firstDivEl as unknown as HTMLDivElement,
+        refName: 'firstDivEl'
+      },
+      {
+        divName: 'Blue',
+        className: 'secondDiv',
+        htmlDivName: secondDivEl as unknown as HTMLDivElement,
+        refName: 'secondDivEl'
+      }
+    ]
+
+    /**
+     * 이동하려는 div 의 clientX 가 나머지 div 의 width 사이에 없어야 함.
+     * 
+     */
+
+    // const checkTouchDiv = (div: HTMLDivElement | undefined) => {
+    //   if()
+    // }
+
+    const onMoveDiv = (e:MouseEvent , div: HTMLDivElement | undefined) => {
+      if(div) {
+        state.div = div; 
+        const divRect = div.getBoundingClientRect();
+
+        console.log(divRect)
+      
+        if (divRect) {
+          state.divLeft = e.clientX - divRect?.left;
+          state.divTop = e.clientY - divRect?.top;
+          console.log(divRect.left)
+          console.log(divRect.left + divRect.width)
+        }
       }
 
       window.addEventListener('mousemove', changeDivPosition);
@@ -49,6 +78,7 @@ export default defineComponent({
 
     return {
       onMoveDiv,
+      divList,
       state,
       firstDivEl,
       secondDivEl
