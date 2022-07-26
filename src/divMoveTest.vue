@@ -74,11 +74,14 @@ export default defineComponent({
 
     const upEvent = () => {
       state.moveDiv.map((div) => {
-        if(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
-        state.div.style.left = String(state.originDivLeft) + 'px';
-        state.div.style.top = String(state.originDivTop) + 'px';
-      }
+        console.log(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()));
+        console.log(div)
       })
+
+      // if(isOverlapDiv(state.div?.getBoundingClientRect() ,state.moveDiv.getBoundingClientRect()) === true) {
+      //   state.div.style.left = String(state.originDivLeft) + 'px';
+      //   state.div.style.top = String(state.originDivTop) + 'px';
+      // }
       
 
       window.removeEventListener('mousemove', changeDivPosition);
