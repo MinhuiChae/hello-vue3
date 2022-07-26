@@ -9,9 +9,7 @@ interface IVideoInfo {
 
 interface IDivInfo {
   divName: string,
-  className: string ,
-  htmlDivName: HTMLDivElement ,
-  refName: VNodeRef | undefined
+  className: string 
 }
 
 export {IVideoInfo, IDivInfo};

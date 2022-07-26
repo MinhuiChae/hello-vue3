@@ -1,6 +1,6 @@
 <template>
-  <div v-for="div in divList" :key="div.divName">
-    <div :class="div.className" @mousedown.stop="onMoveDiv($event, div.htmlDivName)" :ref="div.refName">
+  <div v-for="(div, i) in divList" :key="div.divName">
+    <div :class="div.className" @mousedown.stop="onMoveDiv($event, els[i] )" ref = "els">
       {{ div.divName }}
     </div>
   </div>
@@ -9,54 +9,63 @@
 <script lang="ts">
 import { defineComponent, reactive, ref } from "vue";
 import {IDivInfo} from './interface/index';
-const firstDivEl = ref<HTMLDivElement>();
-const secondDivEl = ref<HTMLDivElement>();
+const els = ref<HTMLDivElement[]>([]);
 export default defineComponent({
   name: 'test-view',
   setup() { 
     const state = reactive({
       div: null as unknown as HTMLDivElement,
+      moveDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
-      divTop: 0
+      divTop: 0,
+      originDivLeft: 0,
+      originDivTop: 0
     })
-
     const divList: IDivInfo[] = [
       {
         divName: 'Red',
-        className: 'firstDiv',
-        htmlDivName: firstDivEl as unknown as HTMLDivElement,
-        refName: 'firstDivEl'
+        className: 'firstDiv'
       },
       {
         divName: 'Blue',
-        className: 'secondDiv',
-        htmlDivName: secondDivEl as unknown as HTMLDivElement,
-        refName: 'secondDivEl'
+        className: 'secondDiv'
       }
     ]
 
     /**
      * 이동하려는 div 의 clientX 가 나머지 div 의 width 사이에 없어야 함.
-     * 
      */
 
-    // const checkTouchDiv = (div: HTMLDivElement | undefined) => {
-    //   if()
-    // }
-
-    const onMoveDiv = (e:MouseEvent , div: HTMLDivElement | undefined) => {
-      if(div) {
-        state.div = div; 
-        const divRect = div.getBoundingClientRect();
-
-        console.log(divRect)
-      
-        if (divRect) {
-          state.divLeft = e.clientX - divRect?.left;
-          state.divTop = e.clientY - divRect?.top;
-          console.log(divRect.left)
-          console.log(divRect.left + divRect.width)
+    const checkDiv = (value: string) => {
+      divList.map((a) => {
+        if(a.divName !== value) {
+          els.value.map((b) => {
+            if(b.innerHTML === a.divName) {
+              state.moveDiv.push(b);
+            }
+          })
         }
+      })
+    }
+
+    const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect) => {
+      if((compareDiv.left+compareDiv.width > originDiv.left) && (compareDiv.left < originDiv.left + originDiv.width) &&
+      (compareDiv.top + compareDiv.height > originDiv.top) && (compareDiv.top < originDiv.top + originDiv.height)) {
+        return true;
+      } return false;
+    }
+
+    const onMoveDiv = (e:MouseEvent, div: HTMLDivElement) => {
+      state.div = div as HTMLDivElement; 
+      checkDiv(state.div.innerHTML);
+      const originDivRect = state.div?.getBoundingClientRect();
+
+      state.originDivLeft = originDivRect?.left;
+      state.originDivTop = originDivRect?.top;
+
+      if(originDivRect) {
+        state.divLeft = e.clientX - originDivRect?.left;
+        state.divTop = e.clientY - originDivRect?.top;
       }
 
       window.addEventListener('mousemove', changeDivPosition);
@@ -64,6 +73,14 @@ export default defineComponent({
     }
 
     const upEvent = () => {
+      state.moveDiv.map((div) => {
+        if(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
+        state.div.style.left = String(state.originDivLeft) + 'px';
+        state.div.style.top = String(state.originDivTop) + 'px';
+      }
+      })
+      
+
       window.removeEventListener('mousemove', changeDivPosition);
       window.removeEventListener('mouseup', upEvent);
     }
@@ -80,8 +97,7 @@ export default defineComponent({
       onMoveDiv,
       divList,
       state,
-      firstDivEl,
-      secondDivEl
+      els
     }
   }
 })
