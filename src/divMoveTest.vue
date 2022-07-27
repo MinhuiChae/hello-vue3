@@ -1,6 +1,6 @@
 <template>
-  <div v-for="(div, i) in divList" :key="div.divName">
-    <div :class="div.className" @mousedown.stop="onMoveDiv($event, els[i] )" ref = "els">
+  <div v-for="(div, i) in divList" :key="div.divName" draggable="true">
+    <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
       {{ div.divName }}
     </div>
   </div>
@@ -19,16 +19,22 @@ export default defineComponent({
       divLeft: 0,
       divTop: 0,
       originDivLeft: 0,
-      originDivTop: 0
+      originDivTop: 0,
+      isSeenDiv: false,
+      copidDiv: null as unknown as Node
     })
     const divList: IDivInfo[] = [
       {
-        divName: 'Red',
-        className: 'firstDiv'
+        divName: 'Orange',
+        className: 'firstDiv',
       },
       {
         divName: 'Blue',
-        className: 'secondDiv'
+        className: 'secondDiv',
+      },
+      {
+        divName: 'green',
+        className: 'thirdDiv',
       }
     ]
 
@@ -55,11 +61,16 @@ export default defineComponent({
       } return false;
     }
 
-    const onMoveDiv = (e:MouseEvent, div: HTMLDivElement) => {
+    const copyDiv = (div: HTMLDivElement) => {
+      state.copidDiv = div.cloneNode(true);
+      document.body.appendChild(state.copidDiv); 
+    }
+
+    const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       state.div = div as HTMLDivElement; 
       checkDiv(state.div.innerHTML);
       const originDivRect = state.div?.getBoundingClientRect();
-
+      copyDiv(state.div)
       state.originDivLeft = originDivRect?.left;
       state.originDivTop = originDivRect?.top;
 
@@ -67,37 +78,58 @@ export default defineComponent({
         state.divLeft = e.clientX - originDivRect?.left;
         state.divTop = e.clientY - originDivRect?.top;
       }
-
-      window.addEventListener('mousemove', changeDivPosition);
+      window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
     }
 
-    const upEvent = () => {
-      state.moveDiv.map((div) => {
-        console.log(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()));
-        console.log(div)
-      })
-
-      // if(isOverlapDiv(state.div?.getBoundingClientRect() ,state.moveDiv.getBoundingClientRect()) === true) {
-      //   state.div.style.left = String(state.originDivLeft) + 'px';
-      //   state.div.style.top = String(state.originDivTop) + 'px';
-      // }
-      
-
-      window.removeEventListener('mousemove', changeDivPosition);
-      window.removeEventListener('mouseup', upEvent);
+    const changeDivStyle = (background: string, color: string, zIndex: string, opacity: string) => {
+      state.div.style.background = background;
+      state.div.style.color = color;
+      state.div.style.zIndex = zIndex;
+      state.div.style.opacity = opacity;
     }
 
-    const changeDivPosition = (event: MouseEvent) => {
+    const upEvent = () => {
+      state.copidDiv.parentElement?.removeChild(state.copidDiv);
+      changeDivStyle('transparent', 'black', String(3), String(1));
+      state.moveDiv.map((div) => {
+        if(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
+          state.div.style.left = String(state.originDivLeft) + 'px';
+          state.div.style.top = String(state.originDivTop) + 'px';
+        }
+      })
+
+      window.removeEventListener('mousemove', moveEvent);
+      window.removeEventListener('mouseup', upEvent);
+
+      state.moveDiv.length = 0;
+    }
+
+    const moveEvent = (event: MouseEvent) => {
       const left = event.pageX - state.divLeft;
       const top = event.pageY - state.divTop;
-
+      changeDivPosition();
+      
       state.div.style.left = String(left) + 'px';
       state.div.style.top = String(top) + 'px';
     }
 
+    const changeDivPosition = () => {
+      let booleanList:any[] = [];
+
+      state.moveDiv.map((div) => {
+        booleanList.push(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()));
+      })
+
+      if(booleanList.includes(true)) {
+        changeDivStyle('red', 'white', String(1), String(0.5));
+      } else {
+        changeDivStyle(state.div.innerHTML, 'white', String(2), String(0.5));
+      }
+    }
+
     return {
-      onMoveDiv,
+      onMouseDown,
       divList,
       state,
       els
@@ -113,7 +145,6 @@ body {
   padding:0;
   width:100%;
   height:100vh;
-
 }
 
 .wrapper {
@@ -126,8 +157,9 @@ body {
   width:300px;
 }
   .firstDiv {
+    left: 100px;
     width: 50px;
-    border: 1px solid red;
+    border: 1px solid orange;
     display: flex;
     justify-content: center;
     padding: 30px;
@@ -141,11 +173,26 @@ body {
   }
 
   .secondDiv {
+    left: 250px;
     width: 50px;
     border: 1px solid blue;
     display: flex;
     justify-content: center;
     padding: 20px;
+    border-radius: 0em;
+    position: absolute;
+    cursor: pointer;
+    -ms-user-select: none; 
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .thirdDiv {
+    width: 50px;
+    border: 1px solid green;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
     border-radius: 0em;
     position: absolute;
     cursor: pointer;

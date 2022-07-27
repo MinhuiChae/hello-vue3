@@ -9,7 +9,7 @@ interface IVideoInfo {
 
 interface IDivInfo {
   divName: string,
-  className: string 
+  className: string,
 }
 
 export {IVideoInfo, IDivInfo};
