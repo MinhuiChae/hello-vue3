@@ -9,7 +9,10 @@ interface IVideoInfo {
 
 interface IDivInfo {
   divName: string,
-  className: string,
+  className?: string,
+  left?: number,
+  top?: number
 }
+
 
 export {IVideoInfo, IDivInfo};

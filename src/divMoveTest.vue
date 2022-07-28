@@ -24,7 +24,8 @@ export default defineComponent({
       originDivLeft: 0,
       originDivTop: 0,
       isSeenDiv: false,
-      copidDiv: null as unknown as Node
+      copidDiv: null as unknown as Node,
+      selectedDiv: [] as IDivInfo[]
     })
     const divList: IDivInfo[] = [
       {
@@ -45,16 +46,21 @@ export default defineComponent({
      * 이동하려는 div 의 clientX 가 나머지 div 의 width 사이에 없어야 함.
      */
 
-    const checkDiv = (value: string) => {
+    const checkDiv = (valueList: string[]) => {
+      console.log(valueList)
       divList.map((a) => {
-        if(a.divName !== value) {
+        valueList.map((value) => {
+          if(a.divName !== value) {
           els.value.map((b) => {
             if(b.innerHTML === a.divName) {
-              state.moveDiv.push(b);
+              state.moveDiv.push(b)
             }
           })
         }
+        })
       })
+      console.log(state.moveDiv)
+      
     }
 
     const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect) => {
@@ -70,24 +76,35 @@ export default defineComponent({
     }
 
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      let divNameList: string[] = [];
       state.div.push(div);
-      
       state.div.map((div) => {
-      checkDiv(div.innerHTML);
-      
-      const originDivRect = div?.getBoundingClientRect();
-      copyDiv(div)
-      state.originDivLeft = originDivRect?.left;
-      state.originDivTop = originDivRect?.top;
+        divNameList.push(div.innerHTML)
+        const originDivRect = div?.getBoundingClientRect();
+        copyDiv(div)
+        state.originDivLeft = originDivRect?.left;
+        state.originDivTop = originDivRect?.top;
 
-      if(originDivRect) {
-        console.log(state.divLeft)
+       if(originDivRect) {
+        
         state.divLeft = e.clientX - originDivRect?.left;
         state.divTop = e.clientY - originDivRect?.top;
       }
+
+
+        const selectedDiv:IDivInfo = {
+        divName: div.innerHTML,
+        left: e.clientX - originDivRect?.left,
+        top: e.clientY - originDivRect?.top
+      }
+        state.selectedDiv.push(selectedDiv)
+      
+      
       window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
       })
+
+      checkDiv(divNameList);
       
     }
 
@@ -99,7 +116,8 @@ export default defineComponent({
     }
 
     const upEvent = (e:MouseEvent) => {
-      
+      e.preventDefault();
+      state.selectedDiv.length = 0;
       state.copidDiv.parentElement?.removeChild(state.copidDiv);
       state.div.map((originDiv) => {
         changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
@@ -109,34 +127,39 @@ export default defineComponent({
           originDiv.style.top = String(state.originDivTop) + 'px';
         }
       })
-
-      if(!e.ctrlKey) {
-        state.div.length = 0;
-      }
-      
+        if(!e.ctrlKey) {
+          state.div.length = 0;
+        } 
       })
 
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
-
+      
       state.moveDiv.length = 0;
     }
 
     const moveEvent = (event: MouseEvent) => {
       state.div.map((div) => {
-        const left = event.pageX - state.divLeft;
-        const top = event.pageY - state.divTop;
         changeDivPosition();
-        div.style.left = String(left) + 'px';
-        div.style.top = String(top) + 'px';
+        state.selectedDiv.map((selectedDiv) => {
+          if(div.innerHTML === selectedDiv.divName) {
+            if(selectedDiv.left && selectedDiv.top) {
+              div.style.left = String(event.pageX - selectedDiv.left) + 'px';
+              div.style.top = String(event.pageY - selectedDiv.top) + 'px';
+            }
+          }
+        })
       })
     }
 
     const changeDivPosition = () => {
       let booleanList:any[] = [];
-
       state.div.map((originDiv) => {
+
+          // console.log("originDiv", originDiv)
+       
         state.moveDiv.map((div) => {
+          // console.log("div", div)
         booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
       })
 
