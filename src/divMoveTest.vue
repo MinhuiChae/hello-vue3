@@ -17,7 +17,7 @@ export default defineComponent({
   name: 'test-view',
   setup() { 
     const state = reactive({
-      div: null as unknown as HTMLDivElement,
+      div: [] as unknown as HTMLDivElement[],
       moveDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
       divTop: 0,
@@ -70,41 +70,50 @@ export default defineComponent({
     }
 
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
-      state.div = div as HTMLDivElement; 
-      checkDiv(state.div.innerHTML);
-      if(e.ctrlKey) {
-        console.log(1)
-      } else {
-        console.log(2)
-      }
-      const originDivRect = state.div?.getBoundingClientRect();
-      copyDiv(state.div)
+      state.div.push(div);
+      
+      state.div.map((div) => {
+      checkDiv(div.innerHTML);
+      
+      const originDivRect = div?.getBoundingClientRect();
+      copyDiv(div)
       state.originDivLeft = originDivRect?.left;
       state.originDivTop = originDivRect?.top;
 
       if(originDivRect) {
+        console.log(state.divLeft)
         state.divLeft = e.clientX - originDivRect?.left;
         state.divTop = e.clientY - originDivRect?.top;
       }
       window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
+      })
+      
     }
 
-    const changeDivStyle = (background: string, color: string, zIndex: string, opacity: string) => {
-      state.div.style.background = background;
-      state.div.style.color = color;
-      state.div.style.zIndex = zIndex;
-      state.div.style.opacity = opacity;
+    const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
+      div.style.background = background;
+      div.style.color = color;
+      div.style.zIndex = zIndex;
+      div.style.opacity = opacity;
     }
 
-    const upEvent = () => {
+    const upEvent = (e:MouseEvent) => {
+      
       state.copidDiv.parentElement?.removeChild(state.copidDiv);
-      changeDivStyle('transparent', 'black', String(3), String(1));
-      state.moveDiv.map((div) => {
-        if(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
-          state.div.style.left = String(state.originDivLeft) + 'px';
-          state.div.style.top = String(state.originDivTop) + 'px';
+      state.div.map((originDiv) => {
+        changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
+        state.moveDiv.map((div) => {
+        if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
+          originDiv.style.left = String(state.originDivLeft) + 'px';
+          originDiv.style.top = String(state.originDivTop) + 'px';
         }
+      })
+
+      if(!e.ctrlKey) {
+        state.div.length = 0;
+      }
+      
       })
 
       window.removeEventListener('mousemove', moveEvent);
@@ -114,26 +123,30 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
-      const left = event.pageX - state.divLeft;
-      const top = event.pageY - state.divTop;
-      changeDivPosition();
-      
-      state.div.style.left = String(left) + 'px';
-      state.div.style.top = String(top) + 'px';
+      state.div.map((div) => {
+        const left = event.pageX - state.divLeft;
+        const top = event.pageY - state.divTop;
+        changeDivPosition();
+        div.style.left = String(left) + 'px';
+        div.style.top = String(top) + 'px';
+      })
     }
 
     const changeDivPosition = () => {
       let booleanList:any[] = [];
 
-      state.moveDiv.map((div) => {
-        booleanList.push(isOverlapDiv(state.div?.getBoundingClientRect() ,div.getBoundingClientRect()));
+      state.div.map((originDiv) => {
+        state.moveDiv.map((div) => {
+        booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
       })
 
       if(booleanList.includes(true)) {
-        changeDivStyle('red', 'white', String(1), String(0.5));
+        changeDivStyle(originDiv, 'red', 'white', String(1), String(0.5));
       } else {
-        changeDivStyle(state.div.innerHTML, 'white', String(2), String(0.5));
+        changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.5));
       }
+      })
+      
     }
 
     onMounted(() => {
