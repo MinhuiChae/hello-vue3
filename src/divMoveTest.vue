@@ -1,13 +1,16 @@
 <template>
-  <div v-for="(div, i) in divList" :key="div.divName" draggable="true">
+<div class="divWrapper">
+  <div v-for="(div, i) in divList" :key="div.divName" >
     <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
       {{ div.divName }}
     </div>
   </div>
+</div>
+  
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref } from "vue";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import {IDivInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
 export default defineComponent({
@@ -69,6 +72,11 @@ export default defineComponent({
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       state.div = div as HTMLDivElement; 
       checkDiv(state.div.innerHTML);
+      if(e.ctrlKey) {
+        console.log(1)
+      } else {
+        console.log(2)
+      }
       const originDivRect = state.div?.getBoundingClientRect();
       copyDiv(state.div)
       state.originDivLeft = originDivRect?.left;
@@ -128,6 +136,9 @@ export default defineComponent({
       }
     }
 
+    onMounted(() => {
+    })
+
     return {
       onMouseDown,
       divList,
@@ -147,7 +158,7 @@ body {
   height:100vh;
 }
 
-.wrapper {
+.divWrapper {
   display:flex;
   width:100%;
   height:100vh;
