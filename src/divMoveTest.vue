@@ -1,5 +1,5 @@
 <template>
-<div class="divWrapper">
+<div class="divWrapper" draggable="true">
   <div v-for="(div, i) in divList" :key="div.divName" >
     <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
       {{ div.divName }}
@@ -10,7 +10,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, reactive, ref } from "vue";
+import { defineComponent, reactive, ref } from "vue";
 import {IDivInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
 export default defineComponent({
@@ -18,13 +18,13 @@ export default defineComponent({
   setup() { 
     const state = reactive({
       div: [] as unknown as HTMLDivElement[],
-      moveDiv: [] as unknown as HTMLDivElement[],
+      comparedDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
       divTop: 0,
       originDivLeft: 0,
       originDivTop: 0,
       isSeenDiv: false,
-      copidDiv: null as unknown as Node,
+      copidDiv: [] as unknown as Node[],
       selectedDiv: [] as IDivInfo[]
     })
     const divList: IDivInfo[] = [
@@ -42,25 +42,16 @@ export default defineComponent({
       }
     ]
 
-    /**
-     * 이동하려는 div 의 clientX 가 나머지 div 의 width 사이에 없어야 함.
-     */
-
     const checkDiv = (valueList: string[]) => {
-      console.log(valueList)
       divList.map((a) => {
-        valueList.map((value) => {
-          if(a.divName !== value) {
+        if(!valueList.includes(a.divName)) {
           els.value.map((b) => {
             if(b.innerHTML === a.divName) {
-              state.moveDiv.push(b)
+              state.comparedDiv.push(b)
             }
           })
         }
-        })
       })
-      console.log(state.moveDiv)
-      
     }
 
     const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect) => {
@@ -70,42 +61,47 @@ export default defineComponent({
       } return false;
     }
 
-    const copyDiv = (div: HTMLDivElement) => {
-      state.copidDiv = div.cloneNode(true);
-      document.body.appendChild(state.copidDiv); 
+    const copyDiv = (div: HTMLDivElement[]) => {
+      div.map((selectedDiv) => {
+        state.copidDiv.push(selectedDiv.cloneNode(true))
+      })
+
+      state.copidDiv.map((copiedDiv) => {
+        document.body.appendChild(copiedDiv); 
+      })
     }
 
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      if(!e.ctrlKey) {
+        state.div.length = 0;
+      } 
       let divNameList: string[] = [];
       state.div.push(div);
+      copyDiv(state.div)
       state.div.map((div) => {
         divNameList.push(div.innerHTML)
         const originDivRect = div?.getBoundingClientRect();
-        copyDiv(div)
         state.originDivLeft = originDivRect?.left;
         state.originDivTop = originDivRect?.top;
 
-       if(originDivRect) {
-        
-        state.divLeft = e.clientX - originDivRect?.left;
-        state.divTop = e.clientY - originDivRect?.top;
-      }
-
-
+        if(originDivRect) {
+          state.divLeft = e.clientX - originDivRect?.left;
+          state.divTop = e.clientY - originDivRect?.top;
+        }
         const selectedDiv:IDivInfo = {
-        divName: div.innerHTML,
-        left: e.clientX - originDivRect?.left,
-        top: e.clientY - originDivRect?.top
-      }
+          divName: div.innerHTML,
+          left: e.clientX - originDivRect?.left,
+          top: e.clientY - originDivRect?.top,
+          originLeft: originDivRect?.left,
+          originTop: originDivRect?.top
+        }
         state.selectedDiv.push(selectedDiv)
-      
-      
-      window.addEventListener('mousemove', moveEvent);
-      window.addEventListener('mouseup', upEvent);
+        
+        window.addEventListener('mousemove', moveEvent);
+        window.addEventListener('mouseup', upEvent);
       })
 
       checkDiv(divNameList);
-      
     }
 
     const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
@@ -116,26 +112,41 @@ export default defineComponent({
     }
 
     const upEvent = (e:MouseEvent) => {
+      let isTouchedDiv = false;
       e.preventDefault();
-      state.selectedDiv.length = 0;
-      state.copidDiv.parentElement?.removeChild(state.copidDiv);
+      state.copidDiv.map((copiedDiv) => {
+        copiedDiv.parentElement?.removeChild(copiedDiv);
+      })
+
       state.div.map((originDiv) => {
         changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
-        state.moveDiv.map((div) => {
-        if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
-          originDiv.style.left = String(state.originDivLeft) + 'px';
-          originDiv.style.top = String(state.originDivTop) + 'px';
-        }
+        state.comparedDiv.map((div) => {
+          if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
+            isTouchedDiv = true;
+          }
+        })
       })
-        if(!e.ctrlKey) {
-          state.div.length = 0;
-        } 
-      })
+
+      if(isTouchedDiv) {
+        state.div.map((originDiv) => {
+          state.selectedDiv.map((selectedDiv) => {
+            if(originDiv.innerHTML === selectedDiv.divName) {
+              originDiv.style.left = String(selectedDiv.originLeft) + 'px';
+              originDiv.style.top = String(selectedDiv.originTop) + 'px';
+            }
+          })
+        })
+      }
 
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
-      
-      state.moveDiv.length = 0;
+
+      if(!e.ctrlKey) {
+        state.div.length = 0;
+      } 
+      state.selectedDiv.length = 0;
+      state.copidDiv.length = 0;
+      state.comparedDiv.length = 0;
     }
 
     const moveEvent = (event: MouseEvent) => {
@@ -153,27 +164,34 @@ export default defineComponent({
     }
 
     const changeDivPosition = () => {
-      let booleanList:any[] = [];
+      let map = new Map<HTMLDivElement, boolean | boolean[]>();
+      let booleanList:boolean[] = [];
+      let boolean: boolean = false;
       state.div.map((originDiv) => {
+        state.comparedDiv.map((div) => {
+          booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
+          if(booleanList.includes(true)) {
+            boolean = true;
+          } else {
+            boolean = false;
+          }
 
-          // console.log("originDiv", originDiv)
-       
-        state.moveDiv.map((div) => {
-          // console.log("div", div)
-        booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
-      })
-
-      if(booleanList.includes(true)) {
-        changeDivStyle(originDiv, 'red', 'white', String(1), String(0.5));
-      } else {
-        changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.5));
-      }
+          if(state.div.length === 1) {
+            map.set(originDiv, boolean);
+          } else {
+            map.set(originDiv, isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()))
+          }
+        })
       })
       
+      map.forEach((value, key) => {
+        if(value) {
+          changeDivStyle(key, 'red', 'white', String(1), String(0.5));
+        } else {
+          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.5));
+        }
+      })
     }
-
-    onMounted(() => {
-    })
 
     return {
       onMouseDown,

@@ -12,6 +12,8 @@ interface IDivInfo {
   className?: string,
   left?: number,
   top?: number
+  originLeft?: number,
+  originTop?: number
 }
 
 
