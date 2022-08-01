@@ -1,22 +1,30 @@
 <template>
-<div class="divWrapper" draggable="true">
   <div v-for="(div, i) in divList" :key="div.divName" >
     <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
       {{ div.divName }}
     </div>
   </div>
-</div>
+
+
+<canvas class="canvas" width="1000" height="1000" ref = "canvasEl" 
+  @mousedown="onMouseDownDrag"
+  @mousemove="mMove"
+  @mouseup="onMouseUpDrag"
+  @mouseout="onMouseOutDrag"
+  >이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
   
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref } from "vue";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import {IDivInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
+const canvasEl = ref<HTMLCanvasElement>();
 export default defineComponent({
   name: 'test-view',
   setup() { 
     const state = reactive({
+      canvasCtx: null as unknown as CanvasRenderingContext2D,
       div: [] as unknown as HTMLDivElement[],
       comparedDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
@@ -25,7 +33,17 @@ export default defineComponent({
       originDivTop: 0,
       isSeenDiv: false,
       copidDiv: [] as unknown as Node[],
-      selectedDiv: [] as IDivInfo[]
+      selectedDiv: [] as IDivInfo[],
+      dragXposition: 0,
+      startX: 0,
+      startY: 0,
+      endX: 0,
+      endY: 0,
+      stX: 0,
+      stY: 0,
+      isDrag: false,
+      innerWidth: 1000,
+      innerHeight: 0
     })
     const divList: IDivInfo[] = [
       {
@@ -191,20 +209,85 @@ export default defineComponent({
           changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.5));
         }
       })
+
+      if(map.size === 0) {
+        state.div.map((a) => {
+          changeDivStyle(a, a.innerHTML, 'white', String(2), String(0.5));
+        })
+      }
     }
+
+    const onMouseDownDrag = (event: MouseEvent) => {
+      state.startX = event.offsetX;
+      state.startY = event.offsetY;
+      state.stX = event.offsetX;
+      state.stY = event.offsetY;
+      state.isDrag = true;
+    }
+
+    const onMouseUpDrag = (event: MouseEvent) => {
+
+      state.endX = event.offsetX;
+      state.endY = event.offsetY;
+      state.isDrag = false;
+      
+      const context = state.canvasCtx;
+      context.clearRect(0,0,context.canvas.width,context.canvas.height) 
+
+      if(canvasEl.value) {
+        canvasEl.value.style.position = 'static'
+      }
+    }
+
+    const onMouseOutDrag = () => {
+      state.isDrag = false;
+    }
+
+    const drawCanvas = (currentX: number, currentY: number) => {
+      if(canvasEl.value) {
+        canvasEl.value.style.position = 'relative'
+      }
+      const context = state.canvasCtx;
+      context.clearRect(0,0,context.canvas.width,context.canvas.height) 
+      context.fillRect(state.startX, state.startY, currentX- state.startX,currentY- state.startY) 
+    }
+
+    const mMove = (event: MouseEvent) => {
+      if(!state.isDrag) {
+        return;
+      }
+
+      const nowX = event.offsetX;
+      const nowY = event.offsetY;
+      drawCanvas(nowX, nowY);
+
+      state.stX = nowX;
+      state.stY = nowY;
+    }
+
+    onMounted(() => {
+      state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
+      state.canvasCtx.fillStyle='#6799FF'
+      state.canvasCtx.globalAlpha = 0.5
+      state.canvasCtx.fill();
+    })
 
     return {
       onMouseDown,
+      onMouseDownDrag,
+      onMouseUpDrag,
+      onMouseOutDrag,
+      mMove,
       divList,
+      canvasEl,
       state,
-      els
+      els,
     }
   }
 })
 </script>
 
 <style>
-
 body {
   margin:0;
   padding:0;
@@ -216,54 +299,62 @@ body {
   display:flex;
   width:100%;
   height:100vh;
+  position: absolute;
 }
 
 .left {
   width:300px;
 }
-  .firstDiv {
-    left: 100px;
-    width: 50px;
-    border: 1px solid orange;
-    display: flex;
-    justify-content: center;
-    padding: 30px;
-    border-radius: 0em;
-    position: absolute;
-    cursor: pointer;
-    -ms-user-select: none; 
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
 
-  .secondDiv {
-    left: 250px;
-    width: 50px;
-    border: 1px solid blue;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
-    border-radius: 0em;
-    position: absolute;
-    cursor: pointer;
-    -ms-user-select: none; 
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  .thirdDiv {
-    width: 50px;
-    border: 1px solid green;
-    display: flex;
-    justify-content: center;
-    padding: 10px;
-    border-radius: 0em;
-    position: absolute;
-    cursor: pointer;
-    -ms-user-select: none; 
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
+.firstDiv {
+  left: 100px;
+  width: 50px;
+  border: 1px solid orange;
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+  border-radius: 0em;
+  position: absolute;
+  cursor: pointer;
+  -ms-user-select: none; 
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  
+}
+
+.secondDiv {
+  left: 250px;
+  width: 50px;
+  border: 1px solid blue;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 0em;
+  position: absolute;
+  cursor: pointer;
+  -ms-user-select: none; 
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.thirdDiv {
+  width: 50px;
+  border: 1px solid green;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 0em;
+  position: absolute;
+  cursor: pointer;
+  -ms-user-select: none; 
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.canvas {
+  border: 1px solid blue;
+  z-index: 10;
+}
 </style>
