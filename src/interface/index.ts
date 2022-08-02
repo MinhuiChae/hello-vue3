@@ -16,5 +16,13 @@ interface IDivInfo {
   originTop?: number
 }
 
+interface IelsInfo {
+  name: string,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number
+}
 
-export {IVideoInfo, IDivInfo};
+
+export {IVideoInfo, IDivInfo, IelsInfo};

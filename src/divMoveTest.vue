@@ -6,7 +6,7 @@
   </div>
 
 
-<canvas class="canvas" width="1000" height="1000" ref = "canvasEl" 
+<canvas class="canvas" width="1200" height="800" ref = "canvasEl" 
   @mousedown="onMouseDownDrag"
   @mousemove="mMove"
   @mouseup="onMouseUpDrag"
@@ -17,7 +17,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, reactive, ref } from "vue";
-import {IDivInfo} from './interface/index';
+import {IDivInfo, IelsInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
 const canvasEl = ref<HTMLCanvasElement>();
 export default defineComponent({
@@ -42,9 +42,12 @@ export default defineComponent({
       stX: 0,
       stY: 0,
       isDrag: false,
+      isDragAndMove: false,
       innerWidth: 1000,
-      innerHeight: 0
+      innerHeight: 0,
+      elsList: [] as IelsInfo[]
     })
+
     const divList: IDivInfo[] = [
       {
         divName: 'Orange',
@@ -90,11 +93,15 @@ export default defineComponent({
     }
 
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
-      if(!e.ctrlKey) {
-        state.div.length = 0;
-      } 
+     
       let divNameList: string[] = [];
-      state.div.push(div);
+       if(state.isDragAndMove === false) {
+        if(!e.ctrlKey) {
+          state.div.length = 0;
+        } 
+        state.div.push(div);
+       }
+
       copyDiv(state.div)
       state.div.map((div) => {
         divNameList.push(div.innerHTML)
@@ -120,6 +127,7 @@ export default defineComponent({
       })
 
       checkDiv(divNameList);
+     
     }
 
     const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
@@ -130,6 +138,7 @@ export default defineComponent({
     }
 
     const upEvent = (e:MouseEvent) => {
+      state.isDragAndMove = false;
       let isTouchedDiv = false;
       e.preventDefault();
       state.copidDiv.map((copiedDiv) => {
@@ -165,6 +174,18 @@ export default defineComponent({
       state.selectedDiv.length = 0;
       state.copidDiv.length = 0;
       state.comparedDiv.length = 0;
+
+      els.value.map((els => {
+        const elsInfo = {
+          name: els.innerHTML,
+          startX: els.offsetLeft,
+          startY: els.offsetTop,
+          endX: els.offsetLeft + els.offsetWidth,
+          endY: els.offsetTop + els.offsetHeight
+        }
+        
+        state.elsList.push(elsInfo)
+      }))
     }
 
     const moveEvent = (event: MouseEvent) => {
@@ -204,9 +225,9 @@ export default defineComponent({
       
       map.forEach((value, key) => {
         if(value) {
-          changeDivStyle(key, 'red', 'white', String(1), String(0.5));
+          changeDivStyle(key, 'red', 'white', String(1), String(1));
         } else {
-          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.5));
+          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.4));
         }
       })
 
@@ -218,6 +239,9 @@ export default defineComponent({
     }
 
     const onMouseDownDrag = (event: MouseEvent) => {
+      state.elsList.length = 0;
+      upEvent(event)
+      state.div.length = 0;
       state.startX = event.offsetX;
       state.startY = event.offsetY;
       state.stX = event.offsetX;
@@ -226,17 +250,45 @@ export default defineComponent({
     }
 
     const onMouseUpDrag = (event: MouseEvent) => {
-
       state.endX = event.offsetX;
       state.endY = event.offsetY;
       state.isDrag = false;
-      
+
+      if(state.endX < state.startX) {
+        const x = state.startX;
+        state.startX = state.endX;
+        state.endX = x
+      }
+
+      if(state.endY < state.startY) {
+        const y = state.startY
+        state.startY = state.endY
+        state.endY = y
+      }
+
       const context = state.canvasCtx;
       context.clearRect(0,0,context.canvas.width,context.canvas.height) 
 
       if(canvasEl.value) {
         canvasEl.value.style.position = 'static'
       }
+
+      state.elsList.map((el) => {
+        if((state.endX > el.startX) && (state.startX < el.endX) &&
+        (state.endY > el.startY) && (state.startY < el.endY)) {
+          els.value.map((els) => {
+            if(els.innerHTML === el.name) {
+              state.div.push(els)
+            }
+          })
+        }
+      })
+
+      if(state.div.length > 0) {
+        state.isDragAndMove = true;
+      }
+
+      moveEvent(event);
     }
 
     const onMouseOutDrag = () => {
@@ -268,8 +320,20 @@ export default defineComponent({
     onMounted(() => {
       state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
       state.canvasCtx.fillStyle='#6799FF'
-      state.canvasCtx.globalAlpha = 0.5
+      state.canvasCtx.globalAlpha = 0.3
       state.canvasCtx.fill();
+
+      els.value.map((els => {
+        const elsInfo = {
+          name: els.innerHTML,
+          startX: els.offsetLeft,
+          startY: els.offsetTop,
+          endX: els.offsetLeft + els.offsetWidth,
+          endY: els.offsetTop + els.offsetHeight
+        }
+        
+        state.elsList.push(elsInfo)
+      }))
     })
 
     return {
