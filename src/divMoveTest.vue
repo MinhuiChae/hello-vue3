@@ -1,28 +1,31 @@
 <template>
-  <div v-for="(div, i) in divList" :key="div.divName" >
-    <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
-      {{ div.divName }}
-    </div>
-  </div>
-
-<canvas class="canvas" ref = "canvasEl" 
+   <div class = 'stage-wrapper' ref = 'stageEl' 
   @mousedown="onMouseDownDrag"
   @mousemove="mMove"
   @mouseup="onMouseUpDrag"
   @mouseout="onMouseOutDrag"
-  >이 브라우저는 캔버스를 지원하지 않습니다.</canvas>
+  >
+    <div v-for="(div, i) in divList" :key="div.divName" >
+      <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
+        {{ div.divName }}
+      </div>
+    </div>
+  </div>
+
+  <div class="selectDiv" ref = "selectEl"></div>
+  
 </template>
 
 <script lang="ts">
 import { defineComponent, onMounted, reactive, ref } from "vue";
 import {IDivInfo, IelsInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
-const canvasEl = ref<HTMLCanvasElement>();
+const selectEl = ref<HTMLDivElement>();
+const stageEl = ref<HTMLDivElement>();
 export default defineComponent({
   name: 'test-view',
   setup() { 
     const state = reactive({
-      canvasCtx: null as unknown as CanvasRenderingContext2D,
       div: [] as unknown as HTMLDivElement[],
       comparedDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
@@ -32,7 +35,6 @@ export default defineComponent({
       isSeenDiv: false,
       copidDiv: [] as unknown as Node[],
       selectedDiv: [] as IDivInfo[],
-      dragXposition: 0,
       startX: 0,
       startY: 0,
       endX: 0,
@@ -41,8 +43,6 @@ export default defineComponent({
       stY: 0,
       isDrag: false,
       isDragAndMove: false,
-      innerWidth: 0,
-      innerHeight: 0,
       elsList: [] as IelsInfo[]
     })
 
@@ -136,6 +136,7 @@ export default defineComponent({
     }
 
     const upEvent = (e:MouseEvent) => {
+      console.log('up')
       state.isDragAndMove = false;
       let isTouchedDiv = false;
       e.preventDefault();
@@ -187,6 +188,7 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
+      console.log(state.div)
       state.div.map((div) => {
         changeDivPosition();
         state.selectedDiv.map((selectedDiv) => {
@@ -245,9 +247,20 @@ export default defineComponent({
       state.stX = event.offsetX;
       state.stY = event.offsetY;
       state.isDrag = true;
+
+      if (selectEl.value) {
+        selectEl.value.style.left = `${event.offsetX}px`;
+        selectEl.value.style.top = `${event.offsetY}px`;
+      }
     }
 
     const onMouseUpDrag = (event: MouseEvent) => {
+
+      if (selectEl.value) {
+        selectEl.value.style.width = '0';
+        selectEl.value.style.height = '0';
+      }
+
       state.endX = event.offsetX;
       state.endY = event.offsetY;
       state.isDrag = false;
@@ -262,13 +275,6 @@ export default defineComponent({
         const y = state.startY
         state.startY = state.endY
         state.endY = y
-      }
-
-      const context = state.canvasCtx;
-      context.clearRect(0,0,context.canvas.width,context.canvas.height) 
-
-      if(canvasEl.value) {
-        canvasEl.value.style.position = 'static'
       }
 
       state.elsList.map((el) => {
@@ -291,21 +297,6 @@ export default defineComponent({
 
     const onMouseOutDrag = () => {
       state.isDrag = false;
-      window.addEventListener('mouseup', clearCanvas)
-    }
-
-    const clearCanvas = () => {
-      const context = state.canvasCtx;
-      context.clearRect(0,0,context.canvas.width,context.canvas.height) ;
-    }
-
-    const drawCanvas = (currentX: number, currentY: number) => {
-      if(canvasEl.value) {
-        canvasEl.value.style.position = 'relative'
-      }
-      const context = state.canvasCtx;
-      context.clearRect(0,0,context.canvas.width,context.canvas.height) 
-      context.fillRect(state.startX, state.startY, currentX- state.startX,currentY- state.startY) 
     }
 
     const mMove = (event: MouseEvent) => {
@@ -315,33 +306,20 @@ export default defineComponent({
 
       const nowX = event.offsetX;
       const nowY = event.offsetY;
-      drawCanvas(nowX, nowY);
-
+      makeSelectbox(nowX, nowY)
       state.stX = nowX;
       state.stY = nowY;
     }
 
-    window.onresize = () => {
-      if(canvasEl.value) {
-        canvasEl.value.width = window.innerWidth;
-        canvasEl.value.height = window.innerHeight;
+    const makeSelectbox = (currentX: number, currentY: number) => {
+      if(selectEl.value && stageEl.value) {
+        selectEl.value.style.width = `${currentX- state.startX}px`;
+        selectEl.value.style.height = `${currentY- state.startY}px`;
+        selectEl.value.style.position = 'relative';
       }
-
-      state.canvasCtx.fillStyle='#6799FF'
-      state.canvasCtx.globalAlpha = 0.3
-      state.canvasCtx.fill();
     }
 
     onMounted(() => {
-      if(canvasEl.value) {
-        canvasEl.value.width = window.innerWidth;
-        canvasEl.value.height = window.innerHeight;
-      }
-      state.canvasCtx = canvasEl.value?.getContext('2d') as CanvasRenderingContext2D;
-      state.canvasCtx.fillStyle='#6799FF'
-      state.canvasCtx.globalAlpha = 0.3
-      state.canvasCtx.fill();
-
       els.value.map((els => {
         const elsInfo = {
           name: els.innerHTML,
@@ -362,9 +340,11 @@ export default defineComponent({
       onMouseOutDrag,
       mMove,
       divList,
-      canvasEl,
+      selectEl,
+      stageEl,
       state,
       els,
+      
     }
   }
 })
@@ -429,7 +409,16 @@ body {
   user-select: none;
 }
 
-.canvas {
-  z-index: 10;
+.stage-wrapper {
+  width:100%;
+  height:100vh;
+  position: absolute;
+}
+
+.selectDiv {
+  pointer-events: none;
+  background-color: #FF717182;
+  z-index : 10;
+  opacity: 0.3;
 }
 </style>
