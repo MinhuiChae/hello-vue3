@@ -1,19 +1,12 @@
 <template>
-   <div class = 'stage-wrapper' ref = 'stageEl' 
-  @mousedown="onMouseDownDrag"
-  @mousemove="mMove"
-  @mouseup="onMouseUpDrag"
-  @mouseout="onMouseOutDrag"
-  >
+   <div class = 'stage-wrapper' ref = 'stageEl' @mousedown="onMouseDownDrag">
     <div v-for="(div, i) in divList" :key="div.divName" >
       <div :class="div.className" @mousedown.stop="onMouseDown($event, els[i] )" ref = "els">
         {{ div.divName }}
       </div>
     </div>
   </div>
-
   <div class="selectDiv" ref = "selectEl"></div>
-  
 </template>
 
 <script lang="ts">
@@ -32,16 +25,14 @@ export default defineComponent({
       divTop: 0,
       originDivLeft: 0,
       originDivTop: 0,
-      isSeenDiv: false,
       copidDiv: [] as unknown as Node[],
       selectedDiv: [] as IDivInfo[],
       startX: 0,
       startY: 0,
       endX: 0,
       endY: 0,
-      stX: 0,
-      stY: 0,
       isDrag: false,
+      isClicked: false,
       isDragAndMove: false,
       elsList: [] as IelsInfo[]
     })
@@ -62,11 +53,11 @@ export default defineComponent({
     ]
 
     const checkDiv = (valueList: string[]) => {
-      divList.map((a) => {
-        if(!valueList.includes(a.divName)) {
-          els.value.map((b) => {
-            if(b.innerHTML === a.divName) {
-              state.comparedDiv.push(b)
+      divList.map((div) => {
+        if(!valueList.includes(div.divName)) {
+          els.value.map((el) => {
+            if(el.innerHTML === div.divName) {
+              state.comparedDiv.push(el)
             }
           })
         }
@@ -92,17 +83,16 @@ export default defineComponent({
     }
 
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      state.isClicked = true;
       let divNameList: string[] = [];
        if(state.isDragAndMove === false) {
-        if(!e.ctrlKey) {
-          state.div.length = 0;
-        } 
+        if(!e.ctrlKey) state.div.length = 0;
         state.div.push(div);
        }
 
-      copyDiv(state.div)
+      copyDiv(state.div);
       state.div.map((div) => {
-        divNameList.push(div.innerHTML)
+        divNameList.push(div.innerHTML);
         const originDivRect = div?.getBoundingClientRect();
         state.originDivLeft = originDivRect?.left;
         state.originDivTop = originDivRect?.top;
@@ -135,8 +125,16 @@ export default defineComponent({
       div.style.opacity = opacity;
     }
 
+    const initDivInform = (e: MouseEvent) => {
+      if(!e.ctrlKey) {
+        state.div.length = 0;
+      } 
+      state.selectedDiv.length = 0;
+      state.copidDiv.length = 0;
+      state.comparedDiv.length = 0;
+    }
+
     const upEvent = (e:MouseEvent) => {
-      console.log('up')
       state.isDragAndMove = false;
       let isTouchedDiv = false;
       e.preventDefault();
@@ -167,12 +165,7 @@ export default defineComponent({
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
 
-      if(!e.ctrlKey) {
-        state.div.length = 0;
-      } 
-      state.selectedDiv.length = 0;
-      state.copidDiv.length = 0;
-      state.comparedDiv.length = 0;
+      initDivInform(e);
 
       els.value.map((els => {
         const elsInfo = {
@@ -188,7 +181,6 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
-      console.log(state.div)
       state.div.map((div) => {
         changeDivPosition();
         state.selectedDiv.map((selectedDiv) => {
@@ -206,6 +198,7 @@ export default defineComponent({
       let map = new Map<HTMLDivElement, boolean | boolean[]>();
       let booleanList:boolean[] = [];
       let boolean: boolean = false;
+
       state.div.map((originDiv) => {
         state.comparedDiv.map((div) => {
           booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
@@ -218,11 +211,11 @@ export default defineComponent({
           if(state.div.length === 1) {
             map.set(originDiv, boolean);
           } else {
-            map.set(originDiv, isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()))
+            map.set(originDiv, isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
           }
         })
       })
-      
+
       map.forEach((value, key) => {
         if(value) {
           changeDivStyle(key, 'red', 'white', String(1), String(1));
@@ -239,30 +232,31 @@ export default defineComponent({
     }
 
     const onMouseDownDrag = (event: MouseEvent) => {
+      state.isClicked = false;
       state.elsList.length = 0;
       upEvent(event)
       state.div.length = 0;
-      state.startX = event.offsetX;
-      state.startY = event.offsetY;
-      state.stX = event.offsetX;
-      state.stY = event.offsetY;
+      state.startX = event.pageX;
+      state.startY = event.pageY;
       state.isDrag = true;
 
       if (selectEl.value) {
-        selectEl.value.style.left = `${event.offsetX}px`;
-        selectEl.value.style.top = `${event.offsetY}px`;
+        selectEl.value.style.left = `${event.pageX}px`;
+        selectEl.value.style.top = `${event.pageY}px`;
       }
+      window.addEventListener('mousemove', mMove);
+      window.addEventListener('mouseup', mouseUpDrag);
+
     }
 
-    const onMouseUpDrag = (event: MouseEvent) => {
-
+    const mouseUpDrag = (event: MouseEvent) => {
       if (selectEl.value) {
         selectEl.value.style.width = '0';
         selectEl.value.style.height = '0';
       }
 
-      state.endX = event.offsetX;
-      state.endY = event.offsetY;
+      state.endX = event.pageX;
+      state.endY = event.pageY;
       state.isDrag = false;
 
       if(state.endX < state.startX) {
@@ -277,26 +271,24 @@ export default defineComponent({
         state.endY = y
       }
 
-      state.elsList.map((el) => {
-        if((state.endX > el.startX) && (state.startX < el.endX) &&
-        (state.endY > el.startY) && (state.startY < el.endY)) {
-          els.value.map((els) => {
-            if(els.innerHTML === el.name) {
-              state.div.push(els)
-            }
-          })
-        }
-      })
+      if(state.isClicked === false) {
+        state.elsList.map((el) => {
+          if((state.endX > el.startX) && (state.startX < el.endX) &&
+          (state.endY > el.startY) && (state.startY < el.endY)) {
+            els.value.map((els) => {
+              if(els.innerHTML === el.name) {
+                state.div.push(els)
+              }
+            })
+          }
+        })
 
-      if(state.div.length > 0) {
-        state.isDragAndMove = true;
+        if(state.div.length > 0) {
+          state.isDragAndMove = true;
+        }
       }
 
       moveEvent(event);
-    }
-
-    const onMouseOutDrag = () => {
-      state.isDrag = false;
     }
 
     const mMove = (event: MouseEvent) => {
@@ -304,18 +296,22 @@ export default defineComponent({
         return;
       }
 
-      const nowX = event.offsetX;
-      const nowY = event.offsetY;
-      makeSelectbox(nowX, nowY)
-      state.stX = nowX;
-      state.stY = nowY;
+      const nowX = event.pageX;
+      const nowY = event.pageY;
+
+      makeSelectbox(nowX, nowY, event)
     }
 
-    const makeSelectbox = (currentX: number, currentY: number) => {
+    const makeSelectbox = (currentX: number, currentY: number, event: MouseEvent) => {
       if(selectEl.value && stageEl.value) {
-        selectEl.value.style.width = `${currentX- state.startX}px`;
-        selectEl.value.style.height = `${currentY- state.startY}px`;
-        selectEl.value.style.position = 'relative';
+        selectEl.value.style.width = `${Math.abs(currentX- state.startX)}px`;
+        selectEl.value.style.height = `${Math.abs(currentY- state.startY)}px`;
+
+        if(currentX- state.startX < 0 ) {
+          selectEl.value.style.left = String(event.pageX) + 'px';
+        } if(currentY- state.startY < 0) {
+          selectEl.value.style.top = String(event.pageY) + 'px';
+        } 
       }
     }
 
@@ -336,9 +332,6 @@ export default defineComponent({
     return {
       onMouseDown,
       onMouseDownDrag,
-      onMouseUpDrag,
-      onMouseOutDrag,
-      mMove,
       divList,
       selectEl,
       stageEl,
@@ -409,6 +402,22 @@ body {
   user-select: none;
 }
 
+.fourthDiv {
+  left: 400px;
+  width: 150px;
+  border: 1px solid purple;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 0em;
+  position: absolute;
+  cursor: pointer;
+  -ms-user-select: none; 
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .stage-wrapper {
   width:100%;
   height:100vh;
@@ -417,8 +426,8 @@ body {
 
 .selectDiv {
   pointer-events: none;
-  background-color: #FF717182;
-  z-index : 10;
+  background-color: #003FD3;
   opacity: 0.3;
+  position: relative;
 }
 </style>
