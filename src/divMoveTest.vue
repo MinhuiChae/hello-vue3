@@ -70,9 +70,7 @@ export default defineComponent({
       divList.map((div) => {
         if(!valueList.includes(div.divName)) {
           els.value.map((el) => {
-            if(el.innerHTML === div.divName) {
-              state.comparedDiv.push(el)
-            }
+            if(el.innerHTML === div.divName) state.comparedDiv.push(el)
           })
         }
       })
@@ -82,8 +80,10 @@ export default defineComponent({
      * 비교하려는 Div 와 기존의 Div의 영역이 겹치는지 확인해준다.
      */
     const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect): boolean => {
-      if((compareDiv.left+compareDiv.width > originDiv.left) && (compareDiv.left < originDiv.left + originDiv.width) &&
-      (compareDiv.top + compareDiv.height > originDiv.top) && (compareDiv.top < originDiv.top + originDiv.height)) {
+      if((compareDiv.left + compareDiv.width > originDiv.left) && 
+        (compareDiv.left < originDiv.left + originDiv.width) &&
+        (compareDiv.top + compareDiv.height > originDiv.top) && 
+        (compareDiv.top < originDiv.top + originDiv.height)) {
         return true;
       } return false;
     }
@@ -107,6 +107,10 @@ export default defineComponent({
     const addCopiedDiv = (div: HTMLDivElement[]) => {
       copyDiv(div);
       state.copidDiv.map((copiedDiv) => document.body.appendChild(copiedDiv));
+    }
+
+    const removeCopiedDiv = () => {
+      state.copidDiv.map((copiedDiv) => copiedDiv.parentElement?.removeChild(copiedDiv))
     }
 
     /**
@@ -159,9 +163,7 @@ export default defineComponent({
     }
 
     const initDivInform = (e: MouseEvent) => {
-      if(!e.ctrlKey) {
-        state.div.length = 0;
-      } 
+      if(!e.ctrlKey) state.div.length = 0;
       state.selectedDiv.length = 0;
       state.copidDiv.length = 0;
       state.comparedDiv.length = 0;
@@ -171,9 +173,7 @@ export default defineComponent({
       state.isDragAndMove = false;
       let isTouchedDiv = false;
       e.preventDefault();
-      state.copidDiv.map((copiedDiv) => {
-        copiedDiv.parentElement?.removeChild(copiedDiv);
-      })
+      removeCopiedDiv();
 
       state.div.map((originDiv) => {
         changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
@@ -291,36 +291,30 @@ export default defineComponent({
 
     }
 
-    const mouseUpDrag = (event: MouseEvent) => {
-      if (selectEl.value) {
-        selectEl.value.style.width = '0';
-        selectEl.value.style.height = '0';
+    const exchangeStartAndEndPosition = (start: number, end: number) => {
+      if(end < start) {
+        const copiedStart = start;
+        start = end;
+        end = copiedStart;
       }
+    }
+
+    const mouseUpDrag = (event: MouseEvent) => {
+      if (selectEl.value) changeDivStyleInfo(selectEl.value, '0', '0')
 
       state.endX = event.pageX;
       state.endY = event.pageY;
       state.isDrag = false;
 
-      if(state.endX < state.startX) {
-        const x = state.startX;
-        state.startX = state.endX;
-        state.endX = x
-      }
-
-      if(state.endY < state.startY) {
-        const y = state.startY
-        state.startY = state.endY
-        state.endY = y
-      }
+      exchangeStartAndEndPosition(state.startX, state.endX);
+      exchangeStartAndEndPosition(state.startY, state.endY);
 
       if(state.isClicked === false) {
         state.elsList.map((el) => {
           if((state.endX > el.startX) && (state.startX < el.endX) &&
           (state.endY > el.startY) && (state.startY < el.endY)) {
             els.value.map((els) => {
-              if(els.innerHTML === el.name) {
-                state.div.push(els)
-              }
+              if(els.innerHTML === el.name) state.div.push(els)
             })
           }
         })
@@ -342,9 +336,8 @@ export default defineComponent({
     }
 
     const makeSelectbox = (currentX: number, currentY: number, event: MouseEvent) => {
-      if(selectEl.value && stageEl.value) {
-        selectEl.value.style.width = `${Math.abs(currentX- state.startX)}px`;
-        selectEl.value.style.height = `${Math.abs(currentY- state.startY)}px`;
+      if(selectEl.value) {
+        changeDivStyleInfo(selectEl.value, `${Math.abs(currentX- state.startX)}px`, `${Math.abs(currentY- state.startY)}px`)
 
         if(currentX- state.startX < 0 ) {
           selectEl.value.style.left = String(event.pageX) + 'px';
@@ -352,6 +345,11 @@ export default defineComponent({
           selectEl.value.style.top = String(event.pageY) + 'px';
         } 
       }
+    }
+
+    const changeDivStyleInfo = (div: HTMLDivElement, width: string, height: string) => {
+      div.style.width = width;
+      div.style.height = height;
     }
 
     onMounted(() => {
@@ -366,7 +364,6 @@ export default defineComponent({
       stageEl,
       state,
       els,
-      
     }
   }
 })
