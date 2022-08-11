@@ -50,9 +50,23 @@ export default defineComponent({
         divName: 'green',
         className: 'thirdDiv',
       }
+      ,
+      {
+        divName: 'purple',
+        className: 'fourthDiv',
+      },
+      {
+        divName: 'pink',
+        className: 'fifthDiv',
+      }
     ]
 
-    const checkDiv = (valueList: string[]) => {
+    /**
+     * 선택된 div 를 제외한 나머지 div를 divList 에서 색출해냄
+     * valueList 에 선택된 div 값의 innerHTML 값을 넣어주고
+     * divList 에서 넘어온 innerHTML 값이 아닐 경우만 state.compareDiv 에 push 해준다.
+     */
+    const findOutCompareDiv = (valueList: string[]) => {
       divList.map((div) => {
         if(!valueList.includes(div.divName)) {
           els.value.map((el) => {
@@ -64,33 +78,41 @@ export default defineComponent({
       })
     }
 
-    const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect) => {
+    /**
+     * 비교하려는 Div 와 기존의 Div의 영역이 겹치는지 확인해준다.
+     */
+    const isOverlapDiv = (compareDiv: DOMRect, originDiv: DOMRect): boolean => {
       if((compareDiv.left+compareDiv.width > originDiv.left) && (compareDiv.left < originDiv.left + originDiv.width) &&
       (compareDiv.top + compareDiv.height > originDiv.top) && (compareDiv.top < originDiv.top + originDiv.height)) {
         return true;
       } return false;
     }
 
+    /**
+     * 사용자가 이동하려는 div 를 클릭하였을 때 
+     * div를 복사해 커서를 따라 그림자를 만들어준다.
+     * select 된 div를 copidDiv 에 넣어주고 그 안에있는 div를 복사해줌
+     */
     const copyDiv = (div: HTMLDivElement[]) => {
       div.map((selectedDiv) => {
         changeDivStyle(selectedDiv, selectedDiv.innerHTML, 'white', String(1), String(0.5));
         state.copidDiv.push(selectedDiv.cloneNode(true))
       })
 
-      state.copidDiv.map((copiedDiv) => {
-        document.body.appendChild(copiedDiv); 
-      })
     }
 
-    const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
-      state.isClicked = true;
-      let divNameList: string[] = [];
-       if(state.isDragAndMove === false) {
-        if(!e.ctrlKey) state.div.length = 0;
-        state.div.push(div);
-       }
+    /**
+     * 복사해준 div 값을 body에 추가한다.
+     */
+    const addCopiedDiv = (div: HTMLDivElement[]) => {
+      copyDiv(div);
+      state.copidDiv.map((copiedDiv) => document.body.appendChild(copiedDiv));
+    }
 
-      copyDiv(state.div);
+    /**
+     * 선택된 div 들의 위치를 저장
+     */
+    const saveSelectedDivInfo = (divNameList: string[], e:MouseEvent) => {
       state.div.map((div) => {
         divNameList.push(div.innerHTML);
         const originDivRect = div?.getBoundingClientRect();
@@ -110,12 +132,23 @@ export default defineComponent({
           originTop: originDivRect?.top
         }
         state.selectedDiv.push(selectedDiv)
-        
-        window.addEventListener('mousemove', moveEvent);
-        window.addEventListener('mouseup', upEvent);
       })
-      
-      checkDiv(divNameList);
+    }
+    
+    const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      state.isClicked = true;
+      let divNameList: string[] = [];
+       if(state.isDragAndMove === false) {
+        if(!e.ctrlKey) state.div.length = 0;
+        state.div.push(div);
+       }
+
+      addCopiedDiv(state.div);
+      saveSelectedDivInfo(divNameList, e)
+
+      window.addEventListener('mousemove', moveEvent);
+      window.addEventListener('mouseup', upEvent);
+      findOutCompareDiv(divNameList);
     }
 
     const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
@@ -166,7 +199,10 @@ export default defineComponent({
       window.removeEventListener('mouseup', upEvent);
 
       initDivInform(e);
+      saveElsInfo();
+    }
 
+    const saveElsInfo = () => {
       els.value.map((els => {
         const elsInfo = {
           name: els.innerHTML,
@@ -182,7 +218,7 @@ export default defineComponent({
 
     const moveEvent = (event: MouseEvent) => {
       state.div.map((div) => {
-        changeDivPosition();
+        changeDivInfo();
         state.selectedDiv.map((selectedDiv) => {
           if(div.innerHTML === selectedDiv.divName) {
             if(selectedDiv.left && selectedDiv.top) {
@@ -194,25 +230,31 @@ export default defineComponent({
       })
     }
 
-    const changeDivPosition = () => {
+    /**
+     * div 끼리 겹치는지를 파악하는 isoverlapDiv 를 이용할 수 있는 함수
+     * 비교해야 할 div 가 여러개가 있을 때 적어도 하나의 div 와 겹쳤는지를 반환함.
+     */
+    const isOverlapDivAtLeastOnce = (overlapBoolean:boolean, booleanList: boolean[]) => {
+      let boolean:boolean = false;
+      booleanList.push(overlapBoolean);
+      if(booleanList.includes(true)) {
+        boolean = true;
+      } else {
+        boolean = false;
+      }
+
+      return boolean;
+    }
+
+    const changeDivInfo = () => {
       let map = new Map<HTMLDivElement, boolean | boolean[]>();
-      let booleanList:boolean[] = [];
-      let boolean: boolean = false;
+      const booleanList:boolean[] = [];
 
       state.div.map((originDiv) => {
+        booleanList.length = 0;
         state.comparedDiv.map((div) => {
-          booleanList.push(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
-          if(booleanList.includes(true)) {
-            boolean = true;
-          } else {
-            boolean = false;
-          }
-
-          if(state.div.length === 1) {
-            map.set(originDiv, boolean);
-          } else {
-            map.set(originDiv, isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()));
-          }
+          const overlapBoolean: boolean = isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect())
+          map.set(originDiv, isOverlapDivAtLeastOnce(overlapBoolean, booleanList));
         })
       })
 
@@ -292,10 +334,7 @@ export default defineComponent({
     }
 
     const mMove = (event: MouseEvent) => {
-      if(!state.isDrag) {
-        return;
-      }
-
+      if(!state.isDrag) return;
       const nowX = event.pageX;
       const nowY = event.pageY;
 
@@ -316,17 +355,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      els.value.map((els => {
-        const elsInfo = {
-          name: els.innerHTML,
-          startX: els.offsetLeft,
-          startY: els.offsetTop,
-          endX: els.offsetLeft + els.offsetWidth,
-          endY: els.offsetTop + els.offsetHeight
-        }
-        
-        state.elsList.push(elsInfo)
-      }))
+      saveElsInfo();
     })
 
     return {
@@ -417,6 +446,22 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
+.fifthDiv {
+  left: 600px;
+  width: 100px;
+  border: 1px solid pink;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 0em;
+  position: absolute;
+  cursor: pointer;
+  -ms-user-select: none; 
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 
 .stage-wrapper {
   width:100%;
