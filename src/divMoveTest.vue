@@ -148,7 +148,7 @@ export default defineComponent({
        }
 
       addCopiedDiv(state.div);
-      saveSelectedDivInfo(divNameList, e)
+      saveSelectedDivInfo(divNameList, e);
 
       window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
@@ -169,6 +169,9 @@ export default defineComponent({
       state.comparedDiv.length = 0;
     }
 
+    /**
+     * mouseUp 을 했을 때
+     */
     const upEvent = (e:MouseEvent) => {
       state.isDragAndMove = false;
       let isTouchedDiv = false;
@@ -235,15 +238,8 @@ export default defineComponent({
      * 비교해야 할 div 가 여러개가 있을 때 적어도 하나의 div 와 겹쳤는지를 반환함.
      */
     const isOverlapDivAtLeastOnce = (overlapBoolean:boolean, booleanList: boolean[]) => {
-      let boolean:boolean = false;
       booleanList.push(overlapBoolean);
-      if(booleanList.includes(true)) {
-        boolean = true;
-      } else {
-        boolean = false;
-      }
-
-      return boolean;
+      return booleanList.includes(true);
     }
 
     const changeDivInfo = () => {
@@ -288,26 +284,25 @@ export default defineComponent({
       }
       window.addEventListener('mousemove', mMove);
       window.addEventListener('mouseup', mouseUpDrag);
-
-    }
-
-    const exchangeStartAndEndPosition = (start: number, end: number) => {
-      if(end < start) {
-        const copiedStart = start;
-        start = end;
-        end = copiedStart;
-      }
     }
 
     const mouseUpDrag = (event: MouseEvent) => {
-      if (selectEl.value) changeDivStyleInfo(selectEl.value, '0', '0')
+      if (selectEl.value) changeDivStyleInfo(selectEl.value, '0', '0');
 
       state.endX = event.pageX;
       state.endY = event.pageY;
       state.isDrag = false;
 
-      exchangeStartAndEndPosition(state.startX, state.endX);
-      exchangeStartAndEndPosition(state.startY, state.endY);
+      if(state.endX < state.startX) {
+        const x = state.startX;
+        state.startX = state.endX;
+        state.endX = x
+      }
+      if(state.endY < state.startY) {
+        const y = state.startY
+        state.startY = state.endY
+        state.endY = y
+      }
 
       if(state.isClicked === false) {
         state.elsList.map((el) => {
