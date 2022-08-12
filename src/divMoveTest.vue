@@ -186,17 +186,18 @@ export default defineComponent({
         })
       })
 
-      if(isTouchedDiv) {
-        state.div.map((originDiv) => {
-          state.selectedDiv.map((selectedDiv) => {
-            if(originDiv.innerHTML === selectedDiv.divName) {
-              originDiv.style.left = String(selectedDiv.originLeft) + 'px';
-              originDiv.style.top = String(selectedDiv.originTop) + 'px';
-              changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.3));
-            }
-          })
-        })
-      }
+      //이거 바꿔주기 => div 충돌할 때 originPosition 으로 가는거
+      // if(isTouchedDiv) {
+      //   state.div.map((originDiv) => {
+      //     state.selectedDiv.map((selectedDiv) => {
+      //       if(originDiv.innerHTML === selectedDiv.divName) {
+      //         originDiv.style.left = String(selectedDiv.originLeft) + 'px';
+      //         originDiv.style.top = String(selectedDiv.originTop) + 'px';
+      //         changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.3));
+      //       }
+      //     })
+      //   })
+      // }
     }
 
     /**
