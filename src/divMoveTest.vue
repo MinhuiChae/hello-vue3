@@ -37,27 +37,32 @@ export default defineComponent({
       elsList: [] as IelsInfo[]
     })
 
-    const divList: IDivInfo[] = [
+    const divList: IDivInfo[] = [ //만들때만쓴다.
       {
         divName: 'Orange',
         className: 'firstDiv',
+        isSelected: false,
       },
       {
         divName: 'Blue',
         className: 'secondDiv',
+        isSelected: false,
       },
       {
         divName: 'green',
         className: 'thirdDiv',
+        isSelected: false,
       }
       ,
       {
         divName: 'purple',
         className: 'fourthDiv',
+        isSelected: false,
       },
       {
         divName: 'pink',
         className: 'fifthDiv',
+        isSelected: false,
       }
     ]
 
@@ -181,9 +186,7 @@ export default defineComponent({
       state.div.map((originDiv) => {
         changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
         state.comparedDiv.map((div) => {
-          if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect()) === true) {
-            isTouchedDiv = true;
-          }
+          if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect())) isTouchedDiv = true;
         })
       })
 
@@ -206,6 +209,7 @@ export default defineComponent({
     }
 
     const saveElsInfo = () => {
+      
       els.value.map((els => {
         const elsInfo = {
           name: els.innerHTML,
@@ -242,7 +246,9 @@ export default defineComponent({
       return booleanList.includes(true);
     }
 
+
     const changeDivInfo = () => {
+      
       let map = new Map<HTMLDivElement, boolean | boolean[]>();
       const booleanList:boolean[] = [];
 
@@ -288,7 +294,7 @@ export default defineComponent({
 
     const mouseUpDrag = (event: MouseEvent) => {
       if (selectEl.value) changeDivStyleInfo(selectEl.value, '0', '0');
-
+      
       state.endX = event.pageX;
       state.endY = event.pageY;
       state.isDrag = false;
@@ -322,6 +328,7 @@ export default defineComponent({
       moveEvent(event);
     }
 
+    
     const mMove = (event: MouseEvent) => {
       if(!state.isDrag) return;
       const nowX = event.pageX;
@@ -342,7 +349,7 @@ export default defineComponent({
       }
     }
 
-    const changeDivStyleInfo = (div: HTMLDivElement, width: string, height: string) => {
+    const changeDivStyleInfo = (div: HTMLDivElement,  width: string, height: string) => {
       div.style.width = width;
       div.style.height = height;
     }

@@ -13,7 +13,12 @@ interface IDivInfo {
   left?: number,
   top?: number
   originLeft?: number,
-  originTop?: number
+  originTop?: number,
+  startX?: number,
+  startY?: number,
+  endX?: number,
+  endY?: number,
+  isSelected?: boolean
 }
 
 interface IelsInfo {
