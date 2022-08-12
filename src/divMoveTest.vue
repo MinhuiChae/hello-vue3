@@ -23,8 +23,6 @@ export default defineComponent({
       comparedDiv: [] as unknown as HTMLDivElement[],
       divLeft: 0,
       divTop: 0,
-      originDivLeft: 0,
-      originDivTop: 0,
       copidDiv: [] as unknown as Node[],
       selectedDiv: [] as IDivInfo[],
       startX: 0,
@@ -34,7 +32,7 @@ export default defineComponent({
       isDrag: false,
       isClicked: false,
       isDragAndMove: false,
-      elsList: [] as IelsInfo[]
+      elsList: [] as IelsInfo[],
     })
 
     const divList: IDivInfo[] = [ //만들때만쓴다.
@@ -71,12 +69,10 @@ export default defineComponent({
      * valueList 에 선택된 div 값의 innerHTML 값을 넣어주고
      * divList 에서 넘어온 innerHTML 값이 아닐 경우만 state.compareDiv 에 push 해준다.
      */
-    const findOutCompareDiv = (valueList: string[]) => {
+    const findOutCompareDiv = () => {
       divList.map((div) => {
-        if(!valueList.includes(div.divName)) {
-          els.value.map((el) => {
-            if(el.innerHTML === div.divName) state.comparedDiv.push(el)
-          })
+        if(div.isSelected === false && div.div) {
+          state.comparedDiv.push(div.div)
         }
       })
     }
@@ -92,25 +88,18 @@ export default defineComponent({
         return true;
       } return false;
     }
-
-    /**
-     * 사용자가 이동하려는 div 를 클릭하였을 때 
-     * div를 복사해 커서를 따라 그림자를 만들어준다.
-     * select 된 div를 copidDiv 에 넣어주고 그 안에있는 div를 복사해줌
-     */
-    const copyDiv = (div: HTMLDivElement[]) => {
-      div.map((selectedDiv) => {
-        changeDivStyle(selectedDiv, selectedDiv.innerHTML, 'white', String(1), String(0.5));
-        state.copidDiv.push(selectedDiv.cloneNode(true))
-      })
-
-    }
-
+    
     /**
      * 복사해준 div 값을 body에 추가한다.
      */
-    const addCopiedDiv = (div: HTMLDivElement[]) => {
-      copyDiv(div);
+    const addCopiedDiv = () => {
+      divList.map((div) => {
+        if(div.isSelected && div.div) {
+          changeDivStyle(div.div, div.divName, 'white', String(1), String(0.5));
+          state.copidDiv.push(div.div.cloneNode(true))
+        }
+      })
+      
       state.copidDiv.map((copiedDiv) => document.body.appendChild(copiedDiv));
     }
 
@@ -121,43 +110,58 @@ export default defineComponent({
     /**
      * 선택된 div 들의 위치를 저장
      */
-    const saveSelectedDivInfo = (divNameList: string[], e:MouseEvent) => {
-      state.div.map((div) => {
-        divNameList.push(div.innerHTML);
-        const originDivRect = div?.getBoundingClientRect();
-        state.originDivLeft = originDivRect?.left;
-        state.originDivTop = originDivRect?.top;
-
-        if(originDivRect) {
-          state.divLeft = e.clientX - originDivRect?.left;
-          state.divTop = e.clientY - originDivRect?.top;
+    const saveSelectedDivInfo = (e:MouseEvent) => {
+      divList.map((div) => {
+        if(div.isSelected && div.div) {
+          const originDivRect = div.div.getBoundingClientRect();
+          div.left = e.clientX - originDivRect?.left;
+          div.top = e.clientY - originDivRect?.top;
+          div.originLeft = originDivRect?.left;
+          div.originTop = originDivRect?.top;
         }
-
-        const selectedDiv:IDivInfo = {
-          divName: div.innerHTML,
-          left: e.clientX - originDivRect?.left,
-          top: e.clientY - originDivRect?.top,
-          originLeft: originDivRect?.left,
-          originTop: originDivRect?.top
-        }
-        state.selectedDiv.push(selectedDiv)
       })
+
+      console.log(divList)
     }
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      divList.map((divs) => {
+        if(divs.divName === div.innerHTML) {
+          divs.isSelected = true;
+        } else {
+          if(!e.ctrlKey) {
+            divs.isSelected = false;
+          }
+          if(divs.div)
+          changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
+        }
+      })
       state.isClicked = true;
-      let divNameList: string[] = [];
        if(state.isDragAndMove === false) {
         if(!e.ctrlKey) state.div.length = 0;
         state.div.push(div);
        }
 
-      addCopiedDiv(state.div);
-      saveSelectedDivInfo(divNameList, e);
+
+      addCopiedDiv();
+      saveSelectedDivInfo(e);
 
       window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
-      findOutCompareDiv(divNameList);
+      div.addEventListener('mouseout', mouseOutEvent)
+      findOutCompareDiv();
+    }
+
+    const mouseOutEvent = () => {
+      window.addEventListener('mousedown', clicked)
+    }
+
+    const clicked = () => {
+      divList.map((div) => {
+        div.isSelected = false;
+        if(div.div)
+        changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
+      })
     }
 
     const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
@@ -174,17 +178,9 @@ export default defineComponent({
       state.comparedDiv.length = 0;
     }
 
-    /**
-     * mouseUp 을 했을 때
-     */
-    const upEvent = (e:MouseEvent) => {
-      state.isDragAndMove = false;
+    const overlap = () => {
       let isTouchedDiv = false;
-      e.preventDefault();
-      removeCopiedDiv();
-
       state.div.map((originDiv) => {
-        changeDivStyle(originDiv, 'transparent', 'black', String(3), String(1));
         state.comparedDiv.map((div) => {
           if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect())) isTouchedDiv = true;
         })
@@ -196,10 +192,22 @@ export default defineComponent({
             if(originDiv.innerHTML === selectedDiv.divName) {
               originDiv.style.left = String(selectedDiv.originLeft) + 'px';
               originDiv.style.top = String(selectedDiv.originTop) + 'px';
+              changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.3));
             }
           })
         })
       }
+    }
+
+    /**
+     * mouseUp 을 했을 때
+     */
+    const upEvent = (e:MouseEvent) => {
+      state.isDragAndMove = false;
+      e.preventDefault();
+      removeCopiedDiv();
+
+      overlap();
 
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
@@ -209,7 +217,6 @@ export default defineComponent({
     }
 
     const saveElsInfo = () => {
-      
       els.value.map((els => {
         const elsInfo = {
           name: els.innerHTML,
@@ -224,17 +231,13 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
-      state.div.map((div) => {
-        changeDivInfo();
-        state.selectedDiv.map((selectedDiv) => {
-          if(div.innerHTML === selectedDiv.divName) {
-            if(selectedDiv.left && selectedDiv.top) {
-              div.style.left = String(event.pageX - selectedDiv.left) + 'px';
-              div.style.top = String(event.pageY - selectedDiv.top) + 'px';
-            }
+        divList.map((div) => {
+          changeDivInfo();
+          if(div.isSelected && div.div && div.left && div.top) {
+            div.div.style.left = String(event.pageX - div.left) + 'px';
+            div.div.style.top = String(event.pageY - div.top) + 'px';
           }
         })
-      })
     }
 
     /**
@@ -278,7 +281,8 @@ export default defineComponent({
     const onMouseDownDrag = (event: MouseEvent) => {
       state.isClicked = false;
       state.elsList.length = 0;
-      upEvent(event)
+      // upEvent(event)
+      overlap();
       state.div.length = 0;
       state.startX = event.pageX;
       state.startY = event.pageY;
@@ -356,6 +360,14 @@ export default defineComponent({
 
     onMounted(() => {
       saveElsInfo();
+      divList.map((div) => {
+        els.value.map((el) => {
+        if(div.divName === el.innerHTML) {
+          div.div = el;
+        }
+        })
+      })
+
     })
 
     return {

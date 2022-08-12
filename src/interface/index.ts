@@ -18,7 +18,8 @@ interface IDivInfo {
   startY?: number,
   endX?: number,
   endY?: number,
-  isSelected?: boolean
+  isSelected?: boolean,
+  div?: HTMLDivElement
 }
 
 interface IelsInfo {
