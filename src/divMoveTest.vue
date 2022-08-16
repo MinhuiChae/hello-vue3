@@ -268,7 +268,6 @@ export default defineComponent({
     }
 
     const onMouseDownDrag = (event: MouseEvent) => {
-      
       state.isClicked = false;
       overlap();
       state.div.length = 0;
