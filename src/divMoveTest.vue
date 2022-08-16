@@ -11,7 +11,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, reactive, ref } from "vue";
-import {IDivInfo, IelsInfo} from './interface/index';
+import {IDivInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
 const selectEl = ref<HTMLDivElement>();
 const stageEl = ref<HTMLDivElement>();
@@ -19,12 +19,9 @@ export default defineComponent({
   name: 'test-view',
   setup() { 
     const state = reactive({
-      div: [] as unknown as HTMLDivElement[],
+      div: [] as IDivInfo[],
       comparedDiv: [] as unknown as HTMLDivElement[],
-      divLeft: 0,
-      divTop: 0,
       copidDiv: [] as unknown as Node[],
-      selectedDiv: [] as IDivInfo[],
       startX: 0,
       startY: 0,
       endX: 0,
@@ -32,7 +29,6 @@ export default defineComponent({
       isDrag: false,
       isClicked: false,
       isDragAndMove: false,
-      elsList: [] as IelsInfo[],
     })
 
     const divList: IDivInfo[] = [ //만들때만쓴다.
@@ -93,8 +89,8 @@ export default defineComponent({
      * 복사해준 div 값을 body에 추가한다.
      */
     const addCopiedDiv = () => {
-      divList.map((div) => {
-        if(div.isSelected && div.div) {
+      state.div.map((div) => {
+        if(div.div) {
           changeDivStyle(div.div, div.divName, 'white', String(1), String(0.5));
           state.copidDiv.push(div.div.cloneNode(true))
         }
@@ -111,8 +107,8 @@ export default defineComponent({
      * 선택된 div 들의 위치를 저장
      */
     const saveSelectedDivInfo = (e:MouseEvent) => {
-      divList.map((div) => {
-        if(div.isSelected && div.div) {
+      state.div.map((div) => {
+        if(div.div) {
           const originDivRect = div.div.getBoundingClientRect();
           div.left = e.clientX - originDivRect?.left;
           div.top = e.clientY - originDivRect?.top;
@@ -120,27 +116,28 @@ export default defineComponent({
           div.originTop = originDivRect?.top;
         }
       })
-
     }
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      const num = state.div.findIndex((divs) => divs.div === div);
+      
       divList.map((divs) => {
         if(divs.divName === div.innerHTML) {
           divs.isSelected = true;
+          if(state.isDragAndMove === false) {
+            if(num > -1) state.div.splice(num, 1);
+            if(!e.ctrlKey) state.div.length = 0;
+            state.div.push(divs);
+          }
         } else {
           if(!e.ctrlKey) {
             divs.isSelected = false;
           }
-          if(divs.div)
-          changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
+          if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
         }
       })
+      
       state.isClicked = true;
-       if(state.isDragAndMove === false) {
-        if(!e.ctrlKey) state.div.length = 0;
-        state.div.push(div);
-       }
-
 
       addCopiedDiv();
       saveSelectedDivInfo(e);
@@ -158,8 +155,7 @@ export default defineComponent({
     const clicked = () => {
       divList.map((div) => {
         div.isSelected = false;
-        if(div.div)
-        changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
+        if(div.div) changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
       })
     }
 
@@ -170,9 +166,7 @@ export default defineComponent({
       div.style.opacity = opacity;
     }
 
-    const initDivInform = (e: MouseEvent) => {
-      if(!e.ctrlKey) state.div.length = 0;
-      state.selectedDiv.length = 0;
+    const initDivInform = () => {
       state.copidDiv.length = 0;
       state.comparedDiv.length = 0;
     }
@@ -181,14 +175,16 @@ export default defineComponent({
       let isTouchedDiv = false;
       state.div.map((originDiv) => {
         state.comparedDiv.map((div) => {
-          if(isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect())) isTouchedDiv = true;
+          if(originDiv.div) {
+            if(isOverlapDiv(originDiv.div.getBoundingClientRect() ,div.getBoundingClientRect())) isTouchedDiv = true;
+          }
         })
       })
 
       //이거 바꿔주기 => div 충돌할 때 originPosition 으로 가는거
       if(isTouchedDiv) {
-        divList.map((div) => {
-          if(div.isSelected && div.div) {
+        state.div.map((div) => {
+          if(div.div) {
             div.div.style.left = String(div.originLeft) + 'px';
             div.div.style.top = String(div.originTop) + 'px';
             changeDivStyle(div.div, div.div.innerHTML, 'white', String(2), String(0.5));
@@ -210,22 +206,19 @@ export default defineComponent({
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
 
-      initDivInform(e);
-      saveElsInfo();
+      initDivInform();
     }
 
     const saveElsInfo = () => {
-      els.value.map((els => {
-        const elsInfo = {
-          name: els.innerHTML,
-          startX: els.offsetLeft,
-          startY: els.offsetTop,
-          endX: els.offsetLeft + els.offsetWidth,
-          endY: els.offsetTop + els.offsetHeight
+      divList.map((div) => {
+        if(div.div) {
+          div.isSelected = false;
+          div.startX = div.div.offsetLeft,
+          div.startY = div.div.offsetTop,
+          div.endX = div.div.offsetWidth + div.div.offsetLeft,
+          div.endY = div.div.offsetHeight + div.div.offsetTop
         }
-        
-        state.elsList.push(elsInfo)
-      }))
+      })
     }
 
     const moveEvent = (event: MouseEvent) => {
@@ -249,15 +242,16 @@ export default defineComponent({
 
 
     const changeDivInfo = () => {
-      
       let map = new Map<HTMLDivElement, boolean | boolean[]>();
       const booleanList:boolean[] = [];
 
       state.div.map((originDiv) => {
         booleanList.length = 0;
         state.comparedDiv.map((div) => {
-          const overlapBoolean: boolean = isOverlapDiv(originDiv.getBoundingClientRect() ,div.getBoundingClientRect())
-          map.set(originDiv, isOverlapDivAtLeastOnce(overlapBoolean, booleanList));
+          if(originDiv.div) {
+            const overlapBoolean: boolean = isOverlapDiv(originDiv.div.getBoundingClientRect() ,div.getBoundingClientRect())
+            map.set(originDiv.div, isOverlapDivAtLeastOnce(overlapBoolean, booleanList));
+          }
         })
       })
 
@@ -271,15 +265,15 @@ export default defineComponent({
 
       if(map.size === 0) {
         state.div.map((a) => {
-          changeDivStyle(a, a.innerHTML, 'white', String(2), String(0.5));
+          if(a.div)
+          changeDivStyle(a.div, a.divName, 'white', String(2), String(0.5));
         })
       }
     }
 
     const onMouseDownDrag = (event: MouseEvent) => {
+      saveElsInfo()
       state.isClicked = false;
-      state.elsList.length = 0;
-      // upEvent(event)
       overlap();
       state.div.length = 0;
       state.startX = event.pageX;
@@ -313,12 +307,13 @@ export default defineComponent({
       }
 
       if(state.isClicked === false) {
-        state.elsList.map((el) => {
-          if((state.endX > el.startX) && (state.startX < el.endX) &&
-          (state.endY > el.startY) && (state.startY < el.endY)) {
-            els.value.map((els) => {
-              if(els.innerHTML === el.name) state.div.push(els)
-            })
+        divList.map((div) => {
+          if(div.startX !== undefined && div.endX !== undefined && div.startY !== undefined && div.endY !== undefined) {
+            
+            if((state.endX > div.startX) && (state.startX < div.endX) &&
+            (state.endY > div.startY) && (state.startY < div.endY)) {
+              div.isSelected = true;
+           }
           }
         })
 
