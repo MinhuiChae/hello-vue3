@@ -121,7 +121,6 @@ export default defineComponent({
         }
       })
 
-      console.log(divList)
     }
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
@@ -187,17 +186,15 @@ export default defineComponent({
       })
 
       //이거 바꿔주기 => div 충돌할 때 originPosition 으로 가는거
-      // if(isTouchedDiv) {
-      //   state.div.map((originDiv) => {
-      //     state.selectedDiv.map((selectedDiv) => {
-      //       if(originDiv.innerHTML === selectedDiv.divName) {
-      //         originDiv.style.left = String(selectedDiv.originLeft) + 'px';
-      //         originDiv.style.top = String(selectedDiv.originTop) + 'px';
-      //         changeDivStyle(originDiv, originDiv.innerHTML, 'white', String(2), String(0.3));
-      //       }
-      //     })
-      //   })
-      // }
+      if(isTouchedDiv) {
+        divList.map((div) => {
+          if(div.isSelected && div.div) {
+            div.div.style.left = String(div.originLeft) + 'px';
+            div.div.style.top = String(div.originTop) + 'px';
+            changeDivStyle(div.div, div.div.innerHTML, 'white', String(2), String(0.5));
+          }
+        })
+      }
     }
 
     /**
