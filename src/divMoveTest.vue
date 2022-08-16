@@ -67,9 +67,7 @@ export default defineComponent({
      */
     const findOutCompareDiv = () => {
       divList.map((div) => {
-        if(div.isSelected === false && div.div) {
-          state.comparedDiv.push(div.div)
-        }
+        if(div.isSelected === false && div.div) state.comparedDiv.push(div.div)
       })
     }
 
@@ -120,20 +118,18 @@ export default defineComponent({
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       const num = state.div.findIndex((divs) => divs.div === div);
-      
       divList.map((divs) => {
-        if(divs.divName === div.innerHTML) {
-          divs.isSelected = true;
-          if(state.isDragAndMove === false) {
+        if(state.isDragAndMove === false) {
+          if(divs.divName === div.innerHTML) {
+            divs.isSelected = true;
             if(num > -1) state.div.splice(num, 1);
             if(!e.ctrlKey) state.div.length = 0;
             state.div.push(divs);
+            
+          } else {
+            if(!e.ctrlKey) divs.isSelected = false;
+            if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
           }
-        } else {
-          if(!e.ctrlKey) {
-            divs.isSelected = false;
-          }
-          if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
         }
       })
       
@@ -222,13 +218,13 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
-        divList.map((div) => {
-          changeDivInfo();
-          if(div.isSelected && div.div && div.left && div.top) {
-            div.div.style.left = String(event.pageX - div.left) + 'px';
-            div.div.style.top = String(event.pageY - div.top) + 'px';
-          }
-        })
+      state.div.map((div) => {
+        changeDivInfo();
+        if(div.div && div.left && div.top) {
+          div.div.style.left = String(event.pageX - div.left) + 'px';
+          div.div.style.top = String(event.pageY - div.top) + 'px';
+        }
+      })
     }
 
     /**
@@ -272,7 +268,7 @@ export default defineComponent({
     }
 
     const onMouseDownDrag = (event: MouseEvent) => {
-      saveElsInfo()
+      
       state.isClicked = false;
       overlap();
       state.div.length = 0;
@@ -286,6 +282,7 @@ export default defineComponent({
       }
       window.addEventListener('mousemove', mMove);
       window.addEventListener('mouseup', mouseUpDrag);
+      saveElsInfo()
     }
 
     const mouseUpDrag = (event: MouseEvent) => {
@@ -309,22 +306,21 @@ export default defineComponent({
       if(state.isClicked === false) {
         divList.map((div) => {
           if(div.startX !== undefined && div.endX !== undefined && div.startY !== undefined && div.endY !== undefined) {
-            
             if((state.endX > div.startX) && (state.startX < div.endX) &&
             (state.endY > div.startY) && (state.startY < div.endY)) {
-              div.isSelected = true;
+
+              if(div.div) {
+                div.isSelected = true;
+                state.div.push(div)
+                changeDivStyle(div.div, div.divName, 'white', String(2), String(0.3));
+              }
            }
           }
         })
 
-        if(state.div.length > 0) {
-          state.isDragAndMove = true;
-        }
+        if(state.div.length > 0) state.isDragAndMove = true;
       }
-
-      moveEvent(event);
     }
-
     
     const mMove = (event: MouseEvent) => {
       if(!state.isDrag) return;
@@ -337,7 +333,6 @@ export default defineComponent({
     const makeSelectbox = (currentX: number, currentY: number, event: MouseEvent) => {
       if(selectEl.value) {
         changeDivStyleInfo(selectEl.value, `${Math.abs(currentX- state.startX)}px`, `${Math.abs(currentY- state.startY)}px`)
-
         if(currentX- state.startX < 0 ) {
           selectEl.value.style.left = String(event.pageX) + 'px';
         } if(currentY- state.startY < 0) {
