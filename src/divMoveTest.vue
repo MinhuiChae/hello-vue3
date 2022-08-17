@@ -29,6 +29,7 @@ export default defineComponent({
       isDrag: false,
       isClicked: false,
       isDragAndMove: false,
+      isMove: false,
     })
 
     const divList: IDivInfo[] = [ //만들때만쓴다.
@@ -118,6 +119,8 @@ export default defineComponent({
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       const num = state.div.findIndex((divs) => divs.div === div);
+      if(num === -1) state.isDragAndMove = false;
+
       divList.map((divs) => {
         if(state.isDragAndMove === false) {
           if(divs.divName === div.innerHTML) {
@@ -125,16 +128,13 @@ export default defineComponent({
             if(num > -1) state.div.splice(num, 1);
             if(!e.ctrlKey) state.div.length = 0;
             state.div.push(divs);
-            
           } else {
             if(!e.ctrlKey) divs.isSelected = false;
             if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
+            state.isClicked = true;
           }
         }
       })
-      
-      state.isClicked = true;
-
       addCopiedDiv();
       saveSelectedDivInfo(e);
 
@@ -193,15 +193,13 @@ export default defineComponent({
      * mouseUp 을 했을 때
      */
     const upEvent = (e:MouseEvent) => {
-      state.isDragAndMove = false;
+      console.log(state.isMove)
+      state.isMove = false;
       e.preventDefault();
       removeCopiedDiv();
-
       overlap();
-
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
-
       initDivInform();
     }
 
@@ -218,6 +216,7 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
+      state.isMove = true;
       state.div.map((div) => {
         changeDivInfo();
         if(div.div && div.left && div.top) {
@@ -236,11 +235,9 @@ export default defineComponent({
       return booleanList.includes(true);
     }
 
-
     const changeDivInfo = () => {
       let map = new Map<HTMLDivElement, boolean | boolean[]>();
       const booleanList:boolean[] = [];
-
       state.div.map((originDiv) => {
         booleanList.length = 0;
         state.comparedDiv.map((div) => {
@@ -307,7 +304,6 @@ export default defineComponent({
           if(div.startX !== undefined && div.endX !== undefined && div.startY !== undefined && div.endY !== undefined) {
             if((state.endX > div.startX) && (state.startX < div.endX) &&
             (state.endY > div.startY) && (state.startY < div.endY)) {
-
               if(div.div) {
                 div.isSelected = true;
                 state.div.push(div)
