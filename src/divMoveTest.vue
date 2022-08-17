@@ -29,7 +29,7 @@ export default defineComponent({
       isDrag: false,
       isClicked: false,
       isDragAndMove: false,
-      isMove: false,
+      isClickedCtrl: false
     })
 
     const divList: IDivInfo[] = [ //만들때만쓴다.
@@ -119,22 +119,36 @@ export default defineComponent({
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       const num = state.div.findIndex((divs) => divs.div === div);
-      if(num === -1) state.isDragAndMove = false;
+      if(num === -1) state.isClickedCtrl = false;
+      if(e.ctrlKey) {
+        state.isClickedCtrl = true;
+      }
 
-      divList.map((divs) => {
-        if(state.isDragAndMove === false) {
+      console.log(state.isClickedCtrl)
+      if(num === -1) state.isDragAndMove = false;
+      if(state.isDragAndMove === false) {
+        divList.map((divs) => {
           if(divs.divName === div.innerHTML) {
             divs.isSelected = true;
-            if(num > -1) state.div.splice(num, 1);
-            if(!e.ctrlKey) state.div.length = 0;
+            if(num > -1) {
+              state.div.splice(num, 1);
+            }
+            if(state.isClickedCtrl === false) {
+              state.div.length = 0; 
+            } 
+            //여기 하는 중 ctrl 누르고 div 여러개 선택해서 move 해보기
             state.div.push(divs);
+            
           } else {
             if(!e.ctrlKey) divs.isSelected = false;
             if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
-            state.isClicked = true;
           }
-        }
-      })
+        
+        })
+      }
+      
+      state.isClicked = true;
+
       addCopiedDiv();
       saveSelectedDivInfo(e);
 
@@ -193,8 +207,7 @@ export default defineComponent({
      * mouseUp 을 했을 때
      */
     const upEvent = (e:MouseEvent) => {
-      console.log(state.isMove)
-      state.isMove = false;
+  
       e.preventDefault();
       removeCopiedDiv();
       overlap();
@@ -216,7 +229,6 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
-      state.isMove = true;
       state.div.map((div) => {
         changeDivInfo();
         if(div.div && div.left && div.top) {
@@ -303,16 +315,16 @@ export default defineComponent({
         divList.map((div) => {
           if(div.startX !== undefined && div.endX !== undefined && div.startY !== undefined && div.endY !== undefined) {
             if((state.endX > div.startX) && (state.startX < div.endX) &&
-            (state.endY > div.startY) && (state.startY < div.endY)) {
+              (state.endY > div.startY) && (state.startY < div.endY)) {
               if(div.div) {
                 div.isSelected = true;
                 state.div.push(div)
                 changeDivStyle(div.div, div.divName, 'white', String(2), String(0.3));
               }
-           }
+            }
           }
         })
-
+        
         if(state.div.length > 0) state.isDragAndMove = true;
       }
     }
