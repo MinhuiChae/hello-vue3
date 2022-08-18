@@ -19,7 +19,7 @@ export default defineComponent({
   name: 'test-view',
   
   setup() { 
-    const div = {} as HTMLDivElement
+    const div = {} as HTMLDivElement;
 
     const state = reactive({
       div: [] as IDivInfo[],
@@ -110,13 +110,13 @@ export default defineComponent({
      * 선택된 div 들의 위치를 저장
      */
     const saveSelectedDivInfo = (e:MouseEvent) => {
-      state.div.map((div) => {
-        if(div.div) {
-          const originDivRect = div.div.getBoundingClientRect();
-          div.left = e.clientX - originDivRect?.left;
-          div.top = e.clientY - originDivRect?.top;
-          div.originLeft = originDivRect?.left;
-          div.originTop = originDivRect?.top;
+      state.div.map((selectedDiv) => {
+        if(selectedDiv.div) {
+          const originDivRect = selectedDiv.div.getBoundingClientRect();
+          selectedDiv.left = e.clientX - originDivRect?.left;
+          selectedDiv.top = e.clientY - originDivRect?.top;
+          selectedDiv.originLeft = originDivRect?.left;
+          selectedDiv.originTop = originDivRect?.top;
         }
       })
     }
@@ -124,7 +124,7 @@ export default defineComponent({
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
       state.clickedDiv = div;
       state.isMoved = false;
-      const num = state.div.findIndex((divs) => divs.div === div);
+      const num = state.div.findIndex((clickedDiv) => clickedDiv.div === div);
       if(num === -1) {
         state.isClickedCtrl = false;
         state.isDragAndMove = false;
@@ -269,11 +269,13 @@ export default defineComponent({
         })
       })
 
+      console.log(booleanList)
+
       map.forEach((value, key) => {
         if(value) {
           changeDivStyle(key, 'red', 'white', String(1), String(1));
         } else {
-          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.3));
+          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.5));
         }
       })
 
@@ -328,7 +330,7 @@ export default defineComponent({
               if(div.div) {
                 div.isSelected = true;
                 state.div.push(div)
-                changeDivStyle(div.div, div.divName, 'white', String(2), String(0.3));
+                changeDivStyle(div.div, div.divName, 'white', String(2), String(0.5));
               }
             }
           }
