@@ -17,9 +17,13 @@ const selectEl = ref<HTMLDivElement>();
 const stageEl = ref<HTMLDivElement>();
 export default defineComponent({
   name: 'test-view',
+  
   setup() { 
+    const div = {} as HTMLDivElement
+
     const state = reactive({
       div: [] as IDivInfo[],
+      clickedDiv: div,
       comparedDiv: [] as unknown as HTMLDivElement[],
       copidDiv: [] as unknown as Node[],
       startX: 0,
@@ -29,7 +33,8 @@ export default defineComponent({
       isDrag: false,
       isClicked: false,
       isDragAndMove: false,
-      isClickedCtrl: false
+      isClickedCtrl: false,
+      isMoved: false
     })
 
     const divList: IDivInfo[] = [ //만들때만쓴다.
@@ -94,7 +99,6 @@ export default defineComponent({
           state.copidDiv.push(div.div.cloneNode(true))
         }
       })
-      
       state.copidDiv.map((copiedDiv) => document.body.appendChild(copiedDiv));
     }
 
@@ -118,43 +122,34 @@ export default defineComponent({
     }
     
     const onMouseDown = (e:MouseEvent, div: HTMLDivElement) => {
+      state.clickedDiv = div;
+      state.isMoved = false;
       const num = state.div.findIndex((divs) => divs.div === div);
-      if(num === -1) state.isClickedCtrl = false;
-      if(e.ctrlKey) {
-        state.isClickedCtrl = true;
+      if(num === -1) {
+        state.isClickedCtrl = false;
+        state.isDragAndMove = false;
       }
-
-      console.log(state.isClickedCtrl)
-      if(num === -1) state.isDragAndMove = false;
-      if(state.isDragAndMove === false) {
+      if(e.ctrlKey) state.isClickedCtrl = true;
+      if(state.isDragAndMove === false && (e.ctrlKey || state.isClickedCtrl === false)) {
         divList.map((divs) => {
           if(divs.divName === div.innerHTML) {
             divs.isSelected = true;
-            if(num > -1) {
-              state.div.splice(num, 1);
-            }
-            if(state.isClickedCtrl === false) {
-              state.div.length = 0; 
-            } 
-            //여기 하는 중 ctrl 누르고 div 여러개 선택해서 move 해보기
+            if(num > -1)state.div.splice(num, 1);
+            if(state.isClickedCtrl === false) state.div.length = 0; 
             state.div.push(divs);
-            
           } else {
             if(!e.ctrlKey) divs.isSelected = false;
             if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
           }
-        
         })
       }
       
       state.isClicked = true;
-
       addCopiedDiv();
       saveSelectedDivInfo(e);
-
       window.addEventListener('mousemove', moveEvent);
       window.addEventListener('mouseup', upEvent);
-      div.addEventListener('mouseout', mouseOutEvent)
+       
       findOutCompareDiv();
     }
 
@@ -207,13 +202,26 @@ export default defineComponent({
      * mouseUp 을 했을 때
      */
     const upEvent = (e:MouseEvent) => {
-  
+      if(state.isMoved === false && !e.ctrlKey) {
+        state.div.map((div) => {
+          if(div.divName !== state.clickedDiv.innerHTML) {
+            div.isSelected = false;
+          }
+        })
+        state.div.length = 0;
+      }
+      
       e.preventDefault();
       removeCopiedDiv();
       overlap();
       window.removeEventListener('mousemove', moveEvent);
       window.removeEventListener('mouseup', upEvent);
       initDivInform();
+      divList.map((div) => {
+        if(div.isSelected === false && div.div) {
+          changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
+        }
+      })
     }
 
     const saveElsInfo = () => {
@@ -229,6 +237,7 @@ export default defineComponent({
     }
 
     const moveEvent = (event: MouseEvent) => {
+      state.isMoved = true;
       state.div.map((div) => {
         changeDivInfo();
         if(div.div && div.left && div.top) {
@@ -270,8 +279,7 @@ export default defineComponent({
 
       if(map.size === 0) {
         state.div.map((a) => {
-          if(a.div)
-          changeDivStyle(a.div, a.divName, 'white', String(2), String(0.5));
+          if(a.div) changeDivStyle(a.div, a.divName, 'white', String(2), String(0.5));
         })
       }
     }
@@ -290,6 +298,7 @@ export default defineComponent({
       }
       window.addEventListener('mousemove', mMove);
       window.addEventListener('mouseup', mouseUpDrag);
+      
       saveElsInfo()
     }
 
@@ -324,7 +333,6 @@ export default defineComponent({
             }
           }
         })
-        
         if(state.div.length > 0) state.isDragAndMove = true;
       }
     }
@@ -333,7 +341,6 @@ export default defineComponent({
       if(!state.isDrag) return;
       const nowX = event.pageX;
       const nowY = event.pageY;
-
       makeSelectbox(nowX, nowY, event)
     }
 
@@ -357,12 +364,12 @@ export default defineComponent({
       saveElsInfo();
       divList.map((div) => {
         els.value.map((el) => {
-        if(div.divName === el.innerHTML) {
-          div.div = el;
-        }
+          if(div.divName === el.innerHTML) div.div = el;
         })
+        
+        if(div.div) div.div.addEventListener('mouseout', mouseOutEvent)
       })
-
+      
     })
 
     return {
