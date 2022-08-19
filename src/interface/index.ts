@@ -30,5 +30,17 @@ interface IelsInfo {
   endY: number
 }
 
+interface IDivStyle {
+  div: HTMLDivElement, 
+  background?: string, 
+  color?: string, 
+  zIndex?: string, 
+  opacity?: string, 
+  width?: string, 
+  height?: string,
+  left?: string,
+  top?: string
+}
 
-export {IVideoInfo, IDivInfo, IelsInfo};
+
+export {IVideoInfo, IDivInfo, IelsInfo, IDivStyle};
