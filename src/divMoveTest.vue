@@ -11,7 +11,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, reactive, ref } from "vue";
-import {IDivInfo, IDivStyle} from './interface/index';
+import {IDivInfo} from './interface/index';
 const els = ref<HTMLDivElement[]>([]);
 const selectEl = ref<HTMLDivElement>();
 const stageEl = ref<HTMLDivElement>();
@@ -95,7 +95,7 @@ export default defineComponent({
     const addCopiedDiv = () => {
       state.div.map((div) => {
         if(div.div) {
-          changeDivStyle({div: div.div, background: div.divName, color: 'white', zIndex: String(1), opacity: String(0.5)});
+          changeDivStyle(div.div, div.divName, 'white', String(1), String(0.5));
           state.copidDiv.push(div.div.cloneNode(true))
         }
       })
@@ -139,7 +139,7 @@ export default defineComponent({
             state.div.push(divs);
           } else {
             if(!e.ctrlKey) divs.isSelected = false;
-            if(divs.div) changeDivStyle({div: divs.div, background: 'transparent', color: 'black', zIndex: String(3), opacity: String(1)});
+            if(divs.div) changeDivStyle(divs.div, 'transparent', 'black', String(3), String(1));
           }
         })
       }
@@ -160,19 +160,15 @@ export default defineComponent({
     const clicked = () => {
       divList.map((div) => {
         div.isSelected = false;
-        if(div.div) changeDivStyle({div: div.div, background: 'transparent', color: 'black', zIndex: String(3), opacity: String(1)});
+        if(div.div) changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
       })
     }
 
-    const changeDivStyle = (info: IDivStyle) => {
-      info.div.style.background = info.background || '';
-      info.div.style.color = info.color || '';
-      info.div.style.zIndex = info.zIndex || '';
-      info.div.style.opacity = info.opacity || '';
-      info.div.style.width = info.width || '';
-      info.div.style.height = info.height || '';
-      info.div.style.left = info.left || '';
-      info.div.style.top = info.top || '';
+    const changeDivStyle = (div: HTMLDivElement, background: string, color: string, zIndex: string, opacity: string) => {
+      div.style.background = background;
+      div.style.color = color;
+      div.style.zIndex = zIndex;
+      div.style.opacity = opacity;
     }
 
     const initDivInform = () => {
@@ -196,7 +192,7 @@ export default defineComponent({
           if(div.div) {
             div.div.style.left = String(div.originLeft) + 'px';
             div.div.style.top = String(div.originTop) + 'px';
-            changeDivStyle({div: div.div, background: div.div.innerHTML, color: 'white', zIndex: String(2), opacity: String(0.5)});
+            changeDivStyle(div.div, div.div.innerHTML, 'white', String(2), String(0.5));
           }
         })
       }
@@ -223,7 +219,7 @@ export default defineComponent({
       initDivInform();
       divList.map((div) => {
         if(div.isSelected === false && div.div) {
-          changeDivStyle({div: div.div, background: 'transparent', color: 'black', zIndex: String(3), opacity: String(1)});
+          changeDivStyle(div.div, 'transparent', 'black', String(3), String(1));
         }
       })
     }
@@ -273,17 +269,19 @@ export default defineComponent({
         })
       })
 
+      console.log(booleanList)
+
       map.forEach((value, key) => {
         if(value) {
-          changeDivStyle({div: key, background: 'red', color: 'white', zIndex: String(1), opacity: String(1)});
+          changeDivStyle(key, 'red', 'white', String(1), String(1));
         } else {
-          changeDivStyle({div: key, background: key.innerHTML, color: 'white', zIndex: String(2), opacity: String(0.5)});
+          changeDivStyle(key, key.innerHTML, 'white', String(2), String(0.5));
         }
       })
 
       if(map.size === 0) {
         state.div.map((a) => {
-          if(a.div) changeDivStyle({div: a.div, background: a.divName, color: 'white', zIndex: String(2), opacity: String(0.5)});
+          if(a.div) changeDivStyle(a.div, a.divName, 'white', String(2), String(0.5));
         })
       }
     }
@@ -307,7 +305,7 @@ export default defineComponent({
     }
 
     const mouseUpDrag = (event: MouseEvent) => {
-      if (selectEl.value) changeDivStyle({div: selectEl.value, width: '0', height: '0'});
+      if (selectEl.value) changeDivStyleInfo(selectEl.value, '0', '0');
       
       state.endX = event.pageX;
       state.endY = event.pageY;
@@ -332,7 +330,7 @@ export default defineComponent({
               if(div.div) {
                 div.isSelected = true;
                 state.div.push(div)
-                changeDivStyle({div: div.div, background: div.divName, color: 'white', zIndex: String(2), opacity: String(0.5)});
+                changeDivStyle(div.div, div.divName, 'white', String(2), String(0.5));
               }
             }
           }
@@ -350,13 +348,18 @@ export default defineComponent({
 
     const makeSelectbox = (currentX: number, currentY: number, event: MouseEvent) => {
       if(selectEl.value) {
-        changeDivStyle({div: selectEl.value, width: `${Math.abs(currentX- state.startX)}px`, height: `${Math.abs(currentY- state.startY)}px`});
+        changeDivStyleInfo(selectEl.value, `${Math.abs(currentX- state.startX)}px`, `${Math.abs(currentY- state.startY)}px`)
         if(currentX- state.startX < 0 ) {
           selectEl.value.style.left = String(event.pageX) + 'px';
         } if(currentY- state.startY < 0) {
           selectEl.value.style.top = String(event.pageY) + 'px';
         } 
       }
+    }
+
+    const changeDivStyleInfo = (div: HTMLDivElement,  width: string, height: string) => {
+      div.style.width = width;
+      div.style.height = height;
     }
 
     onMounted(() => {
